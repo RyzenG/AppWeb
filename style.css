@@ -390,12 +390,15 @@ body.menu-abierto { overflow: hidden; }
     cursor: pointer;
     box-shadow: 0 4px 8px var(--color-sombra);
     z-index: 1003;
+
     transition: filter 0.2s;
+
 }
 
 .btn-scroll-top.mostrar {
     display: flex;
 }
+
 
 .btn-scroll-top:hover {
     filter: brightness(110%);
