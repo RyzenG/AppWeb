@@ -94,14 +94,18 @@ window.addEventListener('keydown', (event) => {
 async function cargarDatos() {
     mostrarLoader();
     try {
-        const [resProductos, resClientes, resVentas, resMetadata, resCategorias] = await Promise.all([
-            fetch(`${API_URL}/productos`), fetch(`${API_URL}/clientes`), fetch(`${API_URL}/ventas`), fetch(`${API_URL}/metadata`), fetch(`${API_URL}/categorias`)
+        const [productosRes, clientesRes, ventasRes, metadataRes, categoriasRes] = await Promise.all([
+            get(`${API_URL}/productos`),
+            get(`${API_URL}/clientes`),
+            get(`${API_URL}/ventas`),
+            get(`${API_URL}/metadata`),
+            get(`${API_URL}/categorias`)
         ]);
-        productos = await resProductos.json();
-        clientes = await resClientes.json();
-        ventas = await resVentas.json();
-        metadata = await resMetadata.json();
-        categorias = await resCategorias.json();
+        productos = productosRes;
+        clientes = clientesRes;
+        ventas = ventasRes;
+        metadata = metadataRes;
+        categorias = categoriasRes;
         
         popularSelectCategorias('filtro-categoria', true);
         actualizarVistas();
@@ -141,16 +145,15 @@ formCategoria.addEventListener('submit', async function(e) {
     if (!nombre) return;
     mostrarLoader();
     try {
-        const url = id ? `${API_URL}/categorias/${id}` : `${API_URL}/categorias`;
-        const method = id ? 'PATCH' : 'POST';
-        const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre }) });
-        if (response.ok) {
-            toastSuccess(`Categoría ${id ? 'actualizada' : 'creada'}`);
-            cancelarEdicionCategoria();
-            await cargarDatos();
+        if (id) {
+            await patch(`${API_URL}/categorias/${id}`, { nombre });
+            toastSuccess('Categoría actualizada');
         } else {
-            throw new Error('Error al guardar categoría');
+            await post(`${API_URL}/categorias`, { nombre });
+            toastSuccess('Categoría creada');
         }
+        cancelarEdicionCategoria();
+        await cargarDatos();
     } catch (err) {
         toastError('Error al guardar');
         console.error(err);
@@ -175,13 +178,9 @@ async function eliminarCategoria(id) {
     if (!await askConfirm('¿Eliminar categoría?', 'Esta acción es permanente.')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/categorias/${id}`, { method: 'DELETE' });
-        if (response.ok) {
-            toastSuccess('Categoría eliminada');
-            await cargarDatos();
-        } else {
-            throw new Error('Error al eliminar');
-        }
+        await del(`${API_URL}/categorias/${id}`);
+        toastSuccess('Categoría eliminada');
+        await cargarDatos();
     } catch (err) {
         toastError('Error al eliminar');
         console.error(err);
@@ -216,15 +215,13 @@ formProducto.addEventListener('submit', async function(event) {
     };
     
     try {
-        let response;
         if (productoId) {
-            response = await fetch(`${API_URL}/productos/${productoId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosProducto) });
-            if (response.ok) toastSuccess("Producto actualizado");
+            await patch(`${API_URL}/productos/${productoId}`, datosProducto);
+            toastSuccess("Producto actualizado");
         } else {
-            response = await fetch(`${API_URL}/productos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosProducto) });
-            if (response.ok) toastSuccess("Producto agregado");
+            await post(`${API_URL}/productos`, datosProducto);
+            toastSuccess("Producto agregado");
         }
-        if (!response.ok) throw new Error('Error guardando producto');
         cerrarModalProducto();
         await cargarDatos();
     } catch (err) {
@@ -239,9 +236,9 @@ async function eliminarProducto(id) {
     if (!await askConfirm('Eliminar producto', '¿Seguro que quieres eliminar este producto?')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/productos/${id}`, { method: 'DELETE' });
-        if (response.ok) { toastSuccess('Producto eliminado.'); await cargarDatos(); } 
-        else { toastError('Error al eliminar.'); }
+        await del(`${API_URL}/productos/${id}`);
+        toastSuccess('Producto eliminado.');
+        await cargarDatos();
     } catch (err) {
         console.error(err);
         toastError('Error al eliminar producto.');
@@ -262,15 +259,13 @@ formCliente.addEventListener('submit', async function(event) {
         direccion: document.getElementById('cliente-direccion') ? document.getElementById('cliente-direccion').value.trim() : ''
     };
     try {
-        let response;
         if (clienteId) {
-            response = await fetch(`${API_URL}/clientes/${clienteId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosCliente) });
-            if (response.ok) toastSuccess("Cliente actualizado");
+            await patch(`${API_URL}/clientes/${clienteId}`, datosCliente);
+            toastSuccess("Cliente actualizado");
         } else {
-            response = await fetch(`${API_URL}/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosCliente) });
-            if (response.ok) toastSuccess("Cliente agregado");
+            await post(`${API_URL}/clientes`, datosCliente);
+            toastSuccess("Cliente agregado");
         }
-        if (!response.ok) throw new Error('Error guardando cliente');
         cerrarModalCliente();
         await cargarDatos();
     } catch (err) {
@@ -285,9 +280,9 @@ async function eliminarCliente(id) {
     if (!await askConfirm('Eliminar cliente', '¿Seguro que quieres eliminar este cliente?')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
-        if (response.ok) { toastSuccess('Cliente eliminado.'); await cargarDatos(); } 
-        else { toastError('Error al eliminar.'); }
+        await del(`${API_URL}/clientes/${id}`);
+        toastSuccess('Cliente eliminado.');
+        await cargarDatos();
     } catch (err) {
         console.error(err);
         toastError('Error al eliminar cliente.');
@@ -319,7 +314,7 @@ document.getElementById('form-venta').addEventListener('submit', async function(
     try {
         const promesasStock = ventaActual.map(item => {
             const nuevoStock = item.stock - item.cantidad;
-            return fetch(`${API_URL}/productos/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: nuevoStock }) });
+            return patch(`${API_URL}/productos/${item.id}`, { stock: nuevoStock });
         });
         await Promise.all(promesasStock);
         
@@ -333,8 +328,8 @@ document.getElementById('form-venta').addEventListener('submit', async function(
             fecha: new Date().toISOString()
         };
         
-        await fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nuevaVenta) });
-        await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ultimaFactura: nuevoNumeroFactura }) });
+        await post(`${API_URL}/ventas`, nuevaVenta);
+        await patch(`${API_URL}/metadata`, { ultimaFactura: nuevoNumeroFactura });
         
         Swal.fire({ icon: 'success', title: `Venta registrada`, text: `Factura Nº ${nuevaVenta.id}` });
         ventaActual = [];
@@ -357,13 +352,9 @@ async function eliminarVenta(ventaId) {
 
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/ventas/${ventaId}`, { method: 'DELETE' });
-        if (response.ok) {
-            toastSuccess('Registro de venta eliminado.');
-            await cargarDatos();
-        } else {
-            toastError('Error al eliminar el registro.');
-        }
+        await del(`${API_URL}/ventas/${ventaId}`);
+        toastSuccess('Registro de venta eliminado.');
+        await cargarDatos();
     } catch (err) {
         console.error(err);
         toastError('Error al eliminar venta.');
@@ -455,19 +446,19 @@ async function importarBackup(event) {
             
             mostrarLoader();
             await Promise.all([
-                ...productos.map(p => fetch(`${API_URL}/productos/${p.id}`, { method: 'DELETE' })),
-                ...clientes.map(c => fetch(`${API_URL}/clientes/${c.id}`, { method: 'DELETE' })),
-                ...ventas.map(v => fetch(`${API_URL}/ventas/${v.id}`, { method: 'DELETE' })),
-                ...categorias.map(cat => fetch(`${API_URL}/categorias/${cat.id}`, { method: 'DELETE' }))
+                ...productos.map(p => del(`${API_URL}/productos/${p.id}`)),
+                ...clientes.map(c => del(`${API_URL}/clientes/${c.id}`)),
+                ...ventas.map(v => del(`${API_URL}/ventas/${v.id}`)),
+                ...categorias.map(cat => del(`${API_URL}/categorias/${cat.id}`))
             ]);
 
             await Promise.all([
-                ...data.productos.map(p => fetch(`${API_URL}/productos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) })),
-                ...data.clientes.map(c => fetch(`${API_URL}/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })),
-                ...data.ventas.map(v => fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) })),
-                ...data.categorias.map(cat => fetch(`${API_URL}/categorias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cat) }))
+                ...data.productos.map(p => post(`${API_URL}/productos`, p)),
+                ...data.clientes.map(c => post(`${API_URL}/clientes`, c)),
+                ...data.ventas.map(v => post(`${API_URL}/ventas`, v)),
+                ...data.categorias.map(cat => post(`${API_URL}/categorias`, cat))
             ]);
-            await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data.metadata) });
+            await patch(`${API_URL}/metadata`, data.metadata);
 
             toastSuccess('Datos importados con éxito.');
             await cargarDatos();
@@ -496,12 +487,12 @@ async function reiniciarAplicacion() {
     mostrarLoader();
     try {
         await Promise.all([
-            ...productos.map(p => fetch(`${API_URL}/productos/${p.id}`, { method: 'DELETE' })),
-            ...clientes.map(c => fetch(`${API_URL}/clientes/${c.id}`, { method: 'DELETE' })),
-            ...ventas.map(v => fetch(`${API_URL}/ventas/${v.id}`, { method: 'DELETE' })),
-            ...categorias.map(c => fetch(`${API_URL}/categorias/${c.id}`, { method: 'DELETE' }))
+            ...productos.map(p => del(`${API_URL}/productos/${p.id}`)),
+            ...clientes.map(c => del(`${API_URL}/clientes/${c.id}`)),
+            ...ventas.map(v => del(`${API_URL}/ventas/${v.id}`)),
+            ...categorias.map(c => del(`${API_URL}/categorias/${c.id}`))
         ]);
-        await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ultimaFactura: 0 }) });
+        await patch(`${API_URL}/metadata`, { ultimaFactura: 0 });
         Swal.fire('¡Hecho!', 'Aplicación reiniciada con éxito.', 'success');
         await cargarDatos();
     } catch (error) {
@@ -775,12 +766,9 @@ window.ajustarStock = (productoId, operacion) => {
         }
         nuevoStock -= cantidad;
     }
-    fetch(`${API_URL}/productos/${productoId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: nuevoStock }) })
-    .then(res => {
-        if (res.ok) { input.value = ''; toastSuccess("Stock actualizado"); cargarDatos(); }
-        else { toastError("Error al actualizar stock"); }
-    })
-    .catch(err => { console.error(err); toastError("Error al actualizar stock"); });
+    patch(`${API_URL}/productos/${productoId}`, { stock: nuevoStock })
+        .then(() => { input.value = ''; toastSuccess("Stock actualizado"); cargarDatos(); })
+        .catch(err => { console.error(err); toastError("Error al actualizar stock"); });
 };
 window.eliminarProducto = eliminarProducto;
 window.eliminarCliente = eliminarCliente;
