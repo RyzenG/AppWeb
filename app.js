@@ -2,6 +2,14 @@
 
 // ---- CONFIG ----
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+const IMAGE_BASE_PATH = './';
+function buildImageSrc(imagenUrl) {
+    if (!imagenUrl) return '';
+    if (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://') || imagenUrl.startsWith('./') || imagenUrl.startsWith('/')) {
+        return imagenUrl;
+    }
+    return `${IMAGE_BASE_PATH}${imagenUrl}`;
+}
 
 // ---- ESTADO GLOBAL ----
 let productos = [];
@@ -49,6 +57,14 @@ function formatearCOP(valor) { return new Intl.NumberFormat('es-CO', { style: 'c
 function formatearNumeroFactura(numero) { return numero.toString().padStart(4, '0'); }
 function safeParseFloat(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function safeParseInt(v) { const n = parseInt(v); return isNaN(n) ? 0 : n; }
+function sanitizeURL(url) {
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+        return '';
+    }
+}
 
 // ---- MODALES ----
 function abrirModalProducto() { formProducto.reset(); document.getElementById('producto-id').value = ''; modalProductoTitulo.innerText = "Agregar Nuevo Producto"; popularSelectCategorias('producto-categoria'); modalProducto.style.display = 'block'; }
@@ -64,8 +80,21 @@ function abrirModalDetalleVenta(ventaId) {
     document.getElementById('detalle-cliente').innerText = cliente ? cliente.nombre : 'N/A';
     document.getElementById('detalle-fecha').innerText = fecha;
     const productosBody = document.getElementById('detalle-venta-productos-body');
-    productosBody.innerHTML = '';
-    venta.productosVendidos.forEach(item => { const subtotal = item.precio * item.cantidad; productosBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(subtotal)}</td></tr>`; });
+    productosBody.textContent = '';
+    venta.productosVendidos.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        const tr = document.createElement('tr');
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = item.nombre;
+        const tdCantidad = document.createElement('td');
+        tdCantidad.textContent = item.cantidad;
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = formatearCOP(item.precio);
+        const tdSubtotal = document.createElement('td');
+        tdSubtotal.textContent = formatearCOP(subtotal);
+        tr.append(tdNombre, tdCantidad, tdPrecio, tdSubtotal);
+        productosBody.appendChild(tr);
+    });
     document.getElementById('detalle-total').innerText = formatearCOP(venta.total);
     document.getElementById('btn-generar-factura').onclick = () => generarFacturaPDF(ventaId);
     modalDetalleVenta.style.display = 'block';
@@ -107,15 +136,26 @@ async function cargarDatos() {
 // ---- CATEGORÍAS (SECCIÓN) ----
 function renderizarVistaCategorias() {
     const lista = document.getElementById('lista-categorias');
-    lista.innerHTML = categorias.map(cat => `
-        <div class="categoria-item">
-            <span>${cat.nombre}</span>
-            <div class="categoria-item-acciones">
-                <button class="btn-secundario" onclick="editarCategoria(${cat.id}, '${cat.nombre}')">Editar</button>
-                <button class="btn-peligro" onclick="eliminarCategoria(${cat.id})">Eliminar</button>
-            </div>
-        </div>
-    `).join('');
+    lista.textContent = '';
+    categorias.forEach(cat => {
+        const item = document.createElement('div');
+        item.className = 'categoria-item';
+        const nombreSpan = document.createElement('span');
+        nombreSpan.textContent = cat.nombre;
+        const acciones = document.createElement('div');
+        acciones.className = 'categoria-item-acciones';
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => editarCategoria(cat.id, cat.nombre));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarCategoria(cat.id));
+        acciones.append(btnEditar, btnEliminar);
+        item.append(nombreSpan, acciones);
+        lista.appendChild(item);
+    });
 }
 
 function cancelarEdicionCategoria() {
@@ -183,9 +223,22 @@ async function eliminarCategoria(id) {
 
 function popularSelectCategorias(selectId, conOpcionTodos = false) {
     const select = document.getElementById(selectId);
-    let options = conOpcionTodos ? '<option value="todos">Todas las categorías</option>' : '<option value="">-- Seleccione una categoría --</option>';
-    options += categorias.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
-    select.innerHTML = options;
+    select.textContent = '';
+    const opcionInicial = document.createElement('option');
+    if (conOpcionTodos) {
+        opcionInicial.value = 'todos';
+        opcionInicial.textContent = 'Todas las categorías';
+    } else {
+        opcionInicial.value = '';
+        opcionInicial.textContent = '-- Seleccione una categoría --';
+    }
+    select.appendChild(opcionInicial);
+    categorias.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nombre;
+        select.appendChild(opt);
+    });
 }
 
 // ---- PRODUCTOS ----
@@ -374,8 +427,20 @@ function generarFacturaPDF(ventaId) {
     document.getElementById('factura-cliente-email').innerText = cliente.email || '';
     document.getElementById('factura-cliente-telefono').innerText = cliente.telefono || '';
     const tablaBody = document.getElementById('factura-tabla-body');
-    tablaBody.innerHTML = '';
-    venta.productosVendidos.forEach(item => { tablaBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(item.precio * item.cantidad)}</td></tr>`; });
+    tablaBody.textContent = '';
+    venta.productosVendidos.forEach(item => {
+        const tr = document.createElement('tr');
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = item.nombre;
+        const tdCantidad = document.createElement('td');
+        tdCantidad.textContent = item.cantidad;
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = formatearCOP(item.precio);
+        const tdSubtotal = document.createElement('td');
+        tdSubtotal.textContent = formatearCOP(item.precio * item.cantidad);
+        tr.append(tdNombre, tdCantidad, tdPrecio, tdSubtotal);
+        tablaBody.appendChild(tr);
+    });
     document.getElementById('factura-total-valor').innerText = formatearCOP(venta.total);
     const elemento = document.getElementById('plantilla-factura');
     const opt = { margin: 0, filename: `Factura-${venta.id}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 3, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
@@ -454,7 +519,11 @@ async function importarBackup(event) {
                 ...data.ventas.map(v => fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) })),
                 ...data.categorias.map(cat => fetch(`${API_URL}/categorias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cat) }))
             ]);
-            await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data.metadata) });
+            await fetch(`${API_URL}/metadata`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ultimaFactura: data.metadata.ultimaFactura })
+            });
 
             toastSuccess('Datos importados con éxito.');
             await cargarDatos();
@@ -539,9 +608,23 @@ function renderizarControlesPaginacion({ contenedorId, paginaActual, itemsPorPag
     if (totalPaginas <= 1) return;
     const wrapper = document.createElement('div');
     wrapper.className = 'paginacion-controles';
-    wrapper.innerHTML += `<button ${paginaActual === 1 ? 'disabled' : ''} onclick="cambiarPagina('${tipo}', ${paginaActual - 1})">Anterior</button>`;
-    for (let i = 1; i <= totalPaginas; i++) { wrapper.innerHTML += `<button class="${i === paginaActual ? 'activo' : ''}" onclick="cambiarPagina('${tipo}', ${i})">${i}</button>`; }
-    wrapper.innerHTML += `<button ${paginaActual === totalPaginas ? 'disabled' : ''} onclick="cambiarPagina('${tipo}', ${paginaActual + 1})">Siguiente</button>`;
+    const prev = document.createElement('button');
+    prev.textContent = 'Anterior';
+    if (paginaActual === 1) prev.disabled = true;
+    prev.addEventListener('click', () => callback(tipo, paginaActual - 1));
+    wrapper.appendChild(prev);
+    for (let i = 1; i <= totalPaginas; i++) {
+        const btn = document.createElement('button');
+        btn.textContent = i;
+        if (i === paginaActual) btn.classList.add('activo');
+        btn.addEventListener('click', () => callback(tipo, i));
+        wrapper.appendChild(btn);
+    }
+    const next = document.createElement('button');
+    next.textContent = 'Siguiente';
+    if (paginaActual === totalPaginas) next.disabled = true;
+    next.addEventListener('click', () => callback(tipo, paginaActual + 1));
+    wrapper.appendChild(next);
     contenedor.appendChild(wrapper);
 }
 function cambiarPagina(tipo, nuevaPagina) {
@@ -568,26 +651,17 @@ function actualizarVistaProductos(nuevaPagina = paginacion.productos.paginaActua
 }
 function renderizarProductosEnTarjetas(productosParaMostrar) {
     const contenedor = document.getElementById('lista-productos-tarjetas');
-    contenedor.innerHTML = '';
+    contenedor.textContent = '';
     productosParaMostrar.forEach(p => {
         const categoria = categorias.find(c => c.id === p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
-        const alerta = p.stock <= p.stockMinimo ? `<p style="color: var(--color-peligro); font-weight: bold;">¡Stock bajo!</p>` : '';
-        const imagenHTML = p.imagenUrl ? `<img src="${p.imagenUrl}" alt="${p.nombre}" class="tarjeta-imagen" loading="lazy" onclick="abrirModalImagen('${p.imagenUrl}')">` : '';
-        const categoriaBadge = categoria ? `<div class="categoria-badge">${categoria.nombre}</div>` : '';
-        tarjeta.innerHTML = `${categoriaBadge}${imagenHTML}<div class="tarjeta-contenido"><h4>${p.nombre}</h4><p>${p.descripcion}</p><p class="precio">${formatearCOP(p.precio)}</p><p class="stock">Disponibles: ${p.stock}</p>${alerta}<div class="tarjeta-acciones"><button class="btn-secundario" onclick="abrirModalParaEditar('${p.id}')">Editar</button><button class="btn-peligro" onclick="eliminarProducto('${p.id}')">Eliminar</button></div></div>`;
         contenedor.appendChild(tarjeta);
     });
 }
 function renderizarProductosEnLista(productosParaMostrar) {
     const tbody = document.getElementById('tabla-productos-body');
-    tbody.innerHTML = '';
-    productosParaMostrar.forEach(p => { 
-        const categoria = categorias.find(c => c.id === p.categoriaId);
-        const tr = document.createElement('tr'); 
-        tr.innerHTML = `<td><strong>${p.nombre}</strong></td><td>${categoria ? categoria.nombre : 'N/A'}</td><td>${p.descripcion}</td><td>${formatearCOP(p.precio)}</td><td>${p.stock}</td><td><div class="tarjeta-acciones" style="border-top: none; padding-top: 0;"><button class="btn-secundario" onclick="abrirModalParaEditar('${p.id}')">Editar</button><button class="btn-peligro" onclick="eliminarProducto('${p.id}')">Eliminar</button></div></td>`; 
-        tbody.appendChild(tr); 
+
     });
 }
 function actualizarVistaClientes(nuevaPagina = paginacion.clientes.paginaActual) {
@@ -602,48 +676,178 @@ function actualizarVistaClientes(nuevaPagina = paginacion.clientes.paginaActual)
 }
 function renderizarClientesEnTarjetas(clientesParaMostrar) {
     const contenedor = document.getElementById('lista-clientes-tarjetas');
-    contenedor.innerHTML = '';
-    clientesParaMostrar.forEach(c => { const tarjeta = document.createElement('div'); tarjeta.className = 'tarjeta-producto'; tarjeta.innerHTML = `<div class="tarjeta-contenido"><h4>${c.nombre}</h4><p>Email: ${c.email || 'N/A'}</p><p>Teléfono: ${c.telefono || 'N/A'}</p><div class="tarjeta-acciones"><button class="btn-secundario" onclick="abrirModalParaEditarCliente('${c.id}')">Editar</button><button class="btn-peligro" onclick="eliminarCliente('${c.id}')">Eliminar</button></div></div>`; contenedor.appendChild(tarjeta); });
+    contenedor.textContent = '';
+    clientesParaMostrar.forEach(c => {
+        const tarjeta = document.createElement('div');
+        tarjeta.className = 'tarjeta-producto';
+        const contenido = document.createElement('div');
+        contenido.className = 'tarjeta-contenido';
+        const h4 = document.createElement('h4');
+        h4.textContent = c.nombre;
+        const pEmail = document.createElement('p');
+        pEmail.textContent = `Email: ${c.email || 'N/A'}`;
+        const pTel = document.createElement('p');
+        pTel.textContent = `Teléfono: ${c.telefono || 'N/A'}`;
+        const acciones = document.createElement('div');
+        acciones.className = 'tarjeta-acciones';
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
+        acciones.append(btnEditar, btnEliminar);
+        contenido.append(h4, pEmail, pTel, acciones);
+        tarjeta.appendChild(contenido);
+        contenedor.appendChild(tarjeta);
+    });
 }
 function renderizarClientesEnLista(clientesParaMostrar) {
     const tbody = document.getElementById('tabla-clientes-body');
-    tbody.innerHTML = '';
-    clientesParaMostrar.forEach(c => { const tr = document.createElement('tr'); tr.innerHTML = `<td>${c.nombre}</td><td>${c.email || 'N/A'}</td><td>${c.telefono || 'N/A'}</td><td><button class="btn-secundario" onclick="abrirModalParaEditarCliente('${c.id}')" style="margin-right: 5px;">Editar</button><button class="btn-peligro" onclick="eliminarCliente('${c.id}')">Eliminar</button></td>`; tbody.appendChild(tr); });
+    tbody.textContent = '';
+    clientesParaMostrar.forEach(c => {
+        const tr = document.createElement('tr');
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = c.nombre;
+        const tdEmail = document.createElement('td');
+        tdEmail.textContent = c.email || 'N/A';
+        const tdTel = document.createElement('td');
+        tdTel.textContent = c.telefono || 'N/A';
+        const tdAcciones = document.createElement('td');
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.style.marginRight = '5px';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
+        tdAcciones.append(btnEditar, btnEliminar);
+        tr.append(tdNombre, tdEmail, tdTel, tdAcciones);
+        tbody.appendChild(tr);
+    });
 }
 function renderizarReportes(nuevaPagina = paginacion.reportes.paginaActual) {
     paginacion.reportes.paginaActual = nuevaPagina;
     const { paginaActual, itemsPorPagina } = paginacion.reportes;
     const tbody = document.getElementById('tabla-reportes-body');
     const ventasPaginadas = ventas.slice().reverse().slice((paginaActual - 1) * itemsPorPagina, paginaActual * itemsPorPagina);
-    tbody.innerHTML = ventasPaginadas.map(venta => {
+    tbody.textContent = '';
+    ventasPaginadas.forEach(venta => {
         const cliente = clientes.find(c => c.id == venta.clienteId);
-        return `<tr>
-            <td>${venta.id}</td>
-            <td>${cliente ? cliente.nombre : 'N/A'}</td>
-            <td>${new Date(venta.fecha).toLocaleDateString('es-CO')}</td>
-            <td>${formatearCOP(venta.total)}</td>
-            <td>
-                <button class="btn-secundario" style="width:auto; margin-right: 5px;" onclick="abrirModalDetalleVenta('${venta.id}')">Ver</button>
-                <button class="btn-peligro" style="width:auto;" onclick="eliminarVenta('${venta.id}')">Eliminar</button>
-            </td>
-        </tr>`;
-    }).join('');
+        const tr = document.createElement('tr');
+        const tdId = document.createElement('td');
+        tdId.textContent = venta.id;
+        const tdCliente = document.createElement('td');
+        tdCliente.textContent = cliente ? cliente.nombre : 'N/A';
+        const tdFecha = document.createElement('td');
+        tdFecha.textContent = new Date(venta.fecha).toLocaleDateString('es-CO');
+        const tdTotal = document.createElement('td');
+        tdTotal.textContent = formatearCOP(venta.total);
+        const tdAcciones = document.createElement('td');
+        const btnVer = document.createElement('button');
+        btnVer.className = 'btn-secundario';
+        btnVer.style.width = 'auto';
+        btnVer.style.marginRight = '5px';
+        btnVer.textContent = 'Ver';
+        btnVer.addEventListener('click', () => abrirModalDetalleVenta(venta.id));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.style.width = 'auto';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarVenta(venta.id));
+        tdAcciones.append(btnVer, btnEliminar);
+        tr.append(tdId, tdCliente, tdFecha, tdTotal, tdAcciones);
+        tbody.appendChild(tr);
+    });
     renderizarControlesPaginacion({ contenedorId: 'paginacion-reportes', paginaActual, itemsPorPagina, totalItems: ventas.length, callback: cambiarPagina, tipo: 'reportes' });
 }
 function renderizarInventario() {
     const tbody = document.getElementById('tabla-inventario-body');
-    tbody.innerHTML = productos.map(p => `<tr><td>${p.nombre}</td><td>${p.stock}</td><td>${p.stockMinimo}</td><td><span class="estado-tag ${p.stock > p.stockMinimo ? 'estado-ok' : 'estado-bajo'}">${p.stock > p.stockMinimo ? 'OK' : 'Bajo'}</span></td><td><input type="number" class="input-ajuste-stock" id="ajuste-stock-${p.id}" placeholder="0"><button class="btn-secundario" onclick="ajustarStock('${p.id}', 'sumar')" style="padding: 5px 10px;">+</button><button class="btn-peligro" onclick="ajustarStock('${p.id}', 'restar')" style="padding: 5px 10px;">-</button></td></tr>`).join('');
+    tbody.textContent = '';
+    productos.forEach(p => {
+        const tr = document.createElement('tr');
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = p.nombre;
+        const tdStock = document.createElement('td');
+        tdStock.textContent = p.stock;
+        const tdMin = document.createElement('td');
+        tdMin.textContent = p.stockMinimo;
+        const tdEstado = document.createElement('td');
+        const spanEstado = document.createElement('span');
+        const estadoOk = p.stock > p.stockMinimo;
+        spanEstado.className = `estado-tag ${estadoOk ? 'estado-ok' : 'estado-bajo'}`;
+        spanEstado.textContent = estadoOk ? 'OK' : 'Bajo';
+        tdEstado.appendChild(spanEstado);
+        const tdAjuste = document.createElement('td');
+        const input = document.createElement('input');
+        input.type = 'number';
+        input.className = 'input-ajuste-stock';
+        input.id = `ajuste-stock-${p.id}`;
+        input.placeholder = '0';
+        const btnSumar = document.createElement('button');
+        btnSumar.className = 'btn-secundario';
+        btnSumar.style.padding = '5px 10px';
+        btnSumar.textContent = '+';
+        btnSumar.addEventListener('click', () => ajustarStock(p.id, 'sumar'));
+        const btnRestar = document.createElement('button');
+        btnRestar.className = 'btn-peligro';
+        btnRestar.style.padding = '5px 10px';
+        btnRestar.textContent = '-';
+        btnRestar.addEventListener('click', () => ajustarStock(p.id, 'restar'));
+        tdAjuste.append(input, btnSumar, btnRestar);
+        tr.append(tdNombre, tdStock, tdMin, tdEstado, tdAjuste);
+        tbody.appendChild(tr);
+    });
 }
 function renderizarFormularioVenta() {
     const selectCliente = document.getElementById('venta-cliente');
-    selectCliente.innerHTML = '<option value="">-- Seleccione un cliente --</option>' + clientes.map(c => `<option value="${c.id}">${c.nombre}</option>`).join('');
+    selectCliente.textContent = '';
+    const opcionCliente = document.createElement('option');
+    opcionCliente.value = '';
+    opcionCliente.textContent = '-- Seleccione un cliente --';
+    selectCliente.appendChild(opcionCliente);
+    clientes.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.nombre;
+        selectCliente.appendChild(opt);
+    });
     const selectProducto = document.getElementById('venta-producto');
-    selectProducto.innerHTML = '<option value="">-- Seleccione un producto --</option>' + productos.filter(p => p.stock > 0).map(p => `<option value="${p.id}">${p.nombre} (${formatearCOP(p.precio)})</option>`).join('');
+    selectProducto.textContent = '';
+    const opcionProducto = document.createElement('option');
+    opcionProducto.value = '';
+    opcionProducto.textContent = '-- Seleccione un producto --';
+    selectProducto.appendChild(opcionProducto);
+    productos.filter(p => p.stock > 0).forEach(p => {
+        const opt = document.createElement('option');
+        opt.value = p.id;
+        opt.textContent = `${p.nombre} (${formatearCOP(p.precio)})`;
+        selectProducto.appendChild(opt);
+    });
 }
 function renderizarResumenVenta() {
     const tbody = document.getElementById('resumen-venta-body');
     let total = 0;
-    tbody.innerHTML = ventaActual.map(item => { const subtotal = item.precio * item.cantidad; total += subtotal; return `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(subtotal)}</td></tr>`; }).join('');
+    tbody.textContent = '';
+    ventaActual.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        total += subtotal;
+        const tr = document.createElement('tr');
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = item.nombre;
+        const tdCantidad = document.createElement('td');
+        tdCantidad.textContent = item.cantidad;
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = formatearCOP(item.precio);
+        const tdSubtotal = document.createElement('td');
+        tdSubtotal.textContent = formatearCOP(subtotal);
+        tr.append(tdNombre, tdCantidad, tdPrecio, tdSubtotal);
+        tbody.appendChild(tr);
+    });
     document.getElementById('venta-total').innerText = formatearCOP(total);
 }
 function actualizarVistas() {
@@ -781,21 +985,37 @@ window.eliminarCategoria = eliminarCategoria;
   window.renderizarClientesEnTarjetas = function(clientesParaMostrar){
     const contenedor = document.getElementById('lista-clientes-tarjetas');
     if (!contenedor) return oldTarjetas && oldTarjetas(clientesParaMostrar);
-    contenedor.innerHTML = '';
+    contenedor.textContent = '';
     clientesParaMostrar.forEach(c => {
       const tarjeta = document.createElement('div');
       tarjeta.className = 'tarjeta';
-      tarjeta.innerHTML = `
-        <div class="tarjeta-contenido">
-          <h4>${c.nombre||''}</h4>
-          <p>${c.email||''}</p>
-          <p>${c.telefono||''}</p>
-          ${c.direccion ? `<p>${c.direccion}</p>` : ''}
-          <div class="tarjeta-acciones">
-            <button class="btn-secundario" onclick="abrirModalParaEditarCliente('${c.id}')">Editar</button>
-            <button class="btn-peligro" onclick="eliminarCliente('${c.id}')">Eliminar</button>
-          </div>
-        </div>`;
+      const contenido = document.createElement('div');
+      contenido.className = 'tarjeta-contenido';
+      const h4 = document.createElement('h4');
+      h4.textContent = c.nombre || '';
+      const pEmail = document.createElement('p');
+      pEmail.textContent = c.email || '';
+      const pTel = document.createElement('p');
+      pTel.textContent = c.telefono || '';
+      contenido.append(h4, pEmail, pTel);
+      if (c.direccion) {
+        const pDir = document.createElement('p');
+        pDir.textContent = c.direccion;
+        contenido.appendChild(pDir);
+      }
+      const acciones = document.createElement('div');
+      acciones.className = 'tarjeta-acciones';
+      const btnEditar = document.createElement('button');
+      btnEditar.className = 'btn-secundario';
+      btnEditar.textContent = 'Editar';
+      btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
+      const btnEliminar = document.createElement('button');
+      btnEliminar.className = 'btn-peligro';
+      btnEliminar.textContent = 'Eliminar';
+      btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
+      acciones.append(btnEditar, btnEliminar);
+      contenido.appendChild(acciones);
+      tarjeta.appendChild(contenido);
       contenedor.appendChild(tarjeta);
     });
   };
@@ -805,17 +1025,30 @@ window.eliminarCategoria = eliminarCategoria;
   window.renderizarClientesEnLista = function(clientesParaMostrar){
     const tbody = document.getElementById('tabla-clientes-body');
     if (!tbody) return oldLista && oldLista(clientesParaMostrar);
-    tbody.innerHTML = clientesParaMostrar.map(c => `
-      <tr>
-        <td>${c.nombre||''}</td>
-        <td>${c.email||''}</td>
-        <td>${c.telefono||''}</td>
-        <td>${c.direccion||''}</td>
-        <td>
-          <button class="btn-secundario" onclick="abrirModalParaEditarCliente('${c.id}')">Editar</button>
-          <button class="btn-peligro" onclick="eliminarCliente('${c.id}')">Eliminar</button>
-        </td>
-      </tr>`).join('');
+    tbody.textContent = '';
+    clientesParaMostrar.forEach(c => {
+      const tr = document.createElement('tr');
+      const tdNombre = document.createElement('td');
+      tdNombre.textContent = c.nombre || '';
+      const tdEmail = document.createElement('td');
+      tdEmail.textContent = c.email || '';
+      const tdTel = document.createElement('td');
+      tdTel.textContent = c.telefono || '';
+      const tdDir = document.createElement('td');
+      tdDir.textContent = c.direccion || '';
+      const tdAcc = document.createElement('td');
+      const btnEditar = document.createElement('button');
+      btnEditar.className = 'btn-secundario';
+      btnEditar.textContent = 'Editar';
+      btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
+      const btnEliminar = document.createElement('button');
+      btnEliminar.className = 'btn-peligro';
+      btnEliminar.textContent = 'Eliminar';
+      btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
+      tdAcc.append(btnEditar, btnEliminar);
+      tr.append(tdNombre, tdEmail, tdTel, tdDir, tdAcc);
+      tbody.appendChild(tr);
+    });
   };
 
   // Inventario con filtros
@@ -826,24 +1059,48 @@ window.eliminarCategoria = eliminarCategoria;
     const q = (document.getElementById('inv-buscar')?.value || '').toLowerCase();
     const estado = document.getElementById('inv-estado')?.value || 'todos';
     const prods = (window.productos || []).filter(p => {
-      const okQ = (p.nombre||'').toLowerCase().includes(q);
-      const okE = estado==='todos' ? true : (estado==='ok' ? p.stock > p.stockMinimo : p.stock <= p.stockMinimo);
+      const okQ = (p.nombre || '').toLowerCase().includes(q);
+      const okE = estado === 'todos' ? true : (estado === 'ok' ? p.stock > p.stockMinimo : p.stock <= p.stockMinimo);
       return okQ && okE;
     });
-    tbody.innerHTML = prods.map(p => `
-      <tr>
-        <td>${p.nombre}</td>
-        <td>${p.stock}</td>
-        <td>${p.stockMinimo}</td>
-        <td>${p.stock <= p.stockMinimo ? '<span class="estado-tag stock-bajo">BAJO</span>' : '<span class="estado-tag stock-ok">OK</span>'}</td>
-        <td>
-          <div class="ajuste-stock">
-            <input type="number" id="ajuste-stock-${p.id}" placeholder="0" class="input-ajuste">
-            <button class="btn-secundario" onclick="ajustarStock('${p.id}', 'sumar')" style="padding:5px 10px;">+</button>
-            <button class="btn-peligro" onclick="ajustarStock('${p.id}', 'restar')" style="padding:5px 10px;">-</button>
-          </div>
-        </td>
-      </tr>`).join('');
+    tbody.textContent = '';
+    prods.forEach(p => {
+      const tr = document.createElement('tr');
+      const tdNombre = document.createElement('td');
+      tdNombre.textContent = p.nombre;
+      const tdStock = document.createElement('td');
+      tdStock.textContent = p.stock;
+      const tdMin = document.createElement('td');
+      tdMin.textContent = p.stockMinimo;
+      const tdEstado = document.createElement('td');
+      const estadoSpan = document.createElement('span');
+      const ok = p.stock > p.stockMinimo;
+      estadoSpan.className = ok ? 'estado-tag stock-ok' : 'estado-tag stock-bajo';
+      estadoSpan.textContent = ok ? 'OK' : 'BAJO';
+      tdEstado.appendChild(estadoSpan);
+      const tdAcciones = document.createElement('td');
+      const ajusteDiv = document.createElement('div');
+      ajusteDiv.className = 'ajuste-stock';
+      const input = document.createElement('input');
+      input.type = 'number';
+      input.id = `ajuste-stock-${p.id}`;
+      input.placeholder = '0';
+      input.className = 'input-ajuste';
+      const btnSumar = document.createElement('button');
+      btnSumar.className = 'btn-secundario';
+      btnSumar.style.padding = '5px 10px';
+      btnSumar.textContent = '+';
+      btnSumar.addEventListener('click', () => ajustarStock(p.id, 'sumar'));
+      const btnRestar = document.createElement('button');
+      btnRestar.className = 'btn-peligro';
+      btnRestar.style.padding = '5px 10px';
+      btnRestar.textContent = '-';
+      btnRestar.addEventListener('click', () => ajustarStock(p.id, 'restar'));
+      ajusteDiv.append(input, btnSumar, btnRestar);
+      tdAcciones.appendChild(ajusteDiv);
+      tr.append(tdNombre, tdStock, tdMin, tdEstado, tdAcciones);
+      tbody.appendChild(tr);
+    });
   };
 
   window.addEventListener('DOMContentLoaded', () => {
