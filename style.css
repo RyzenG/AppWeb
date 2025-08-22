@@ -366,11 +366,12 @@ body.menu-abierto { overflow: hidden; }
 .factura-tabla { width: 100%; border-collapse: collapse; }
 .factura-tabla th, .factura-tabla td { border: 1px solid #ccc; padding: 8px; text-align: left; }
 .factura-tabla th { background-color: #f2f2f2; font-weight: bold; }
-.factura-resumen { margin-top: 20px; display: flex; justify-content: flex-end; width: 100%; }
-.factura-total-box { border-top: 2px solid #333; padding-top: 10px; display: flex; justify-content: space-between; width: 40%; }
-.factura-total-box p { margin: 0; font-size: 14px; font-weight: bold; }
-.factura-footer { margin-top: 40px; text-align: center; border-top: 1px solid #ccc; padding-top: 15px; }
-.factura-gracias-box p { margin: 0; font-style: italic; }
+.factura-resumen { margin-top: 20px; width: 100%; display: flex; justify-content: flex-end; gap: 10px; }
+.factura-iva { border: 1px solid #333; padding: 8px 15px; display: flex; justify-content: space-between; min-width: 120px; }
+.factura-total { background-color: #333; color: #fff; padding: 10px 20px; display: flex; justify-content: space-between; min-width: 160px; font-weight: bold; }
+.factura-footer { margin-top: 40px; }
+.factura-gracias { background-color: #f2f2f2; padding: 8px; text-align: center; margin: 0; font-style: italic; }
+.factura-tagline { background-color: #333; color: #fff; display: flex; justify-content: space-between; font-size: 10px; padding: 6px 10px; }
 .inventario-filtros{display:flex;gap:10px;align-items:center;margin:10px 0}
 
 /* Botón para volver arriba */
