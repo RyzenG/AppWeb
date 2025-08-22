@@ -2,6 +2,14 @@
 
 // ---- CONFIG ----
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+const IMAGE_BASE_PATH = './';
+function buildImageSrc(imagenUrl) {
+    if (!imagenUrl) return '';
+    if (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://') || imagenUrl.startsWith('./') || imagenUrl.startsWith('/')) {
+        return imagenUrl;
+    }
+    return `${IMAGE_BASE_PATH}${imagenUrl}`;
+}
 
 // ---- ESTADO GLOBAL ----
 let productos = [];
@@ -574,7 +582,8 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
         const alerta = p.stock <= p.stockMinimo ? `<p style="color: var(--color-peligro); font-weight: bold;">¡Stock bajo!</p>` : '';
-        const imagenHTML = p.imagenUrl ? `<img src="${p.imagenUrl}" alt="${p.nombre}" class="tarjeta-imagen" loading="lazy" onclick="abrirModalImagen('${p.imagenUrl}')">` : '';
+        const imagenSrc = buildImageSrc(p.imagenUrl);
+        const imagenHTML = imagenSrc ? `<img src="${imagenSrc}" alt="${p.nombre}" class="tarjeta-imagen" loading="lazy" onclick="abrirModalImagen('${imagenSrc}')">` : '';
         const categoriaBadge = categoria ? `<div class="categoria-badge">${categoria.nombre}</div>` : '';
         tarjeta.innerHTML = `${categoriaBadge}${imagenHTML}<div class="tarjeta-contenido"><h4>${p.nombre}</h4><p>${p.descripcion}</p><p class="precio">${formatearCOP(p.precio)}</p><p class="stock">Disponibles: ${p.stock}</p>${alerta}<div class="tarjeta-acciones"><button class="btn-secundario" onclick="abrirModalParaEditar('${p.id}')">Editar</button><button class="btn-peligro" onclick="eliminarProducto('${p.id}')">Eliminar</button></div></div>`;
         contenedor.appendChild(tarjeta);
