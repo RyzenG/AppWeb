@@ -2,6 +2,14 @@
 
 // ---- CONFIG ----
 const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+const IMAGE_BASE_PATH = './';
+function buildImageSrc(imagenUrl) {
+    if (!imagenUrl) return '';
+    if (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://') || imagenUrl.startsWith('./') || imagenUrl.startsWith('/')) {
+        return imagenUrl;
+    }
+    return `${IMAGE_BASE_PATH}${imagenUrl}`;
+}
 
 // ---- ESTADO GLOBAL ----
 let productos = [];
@@ -648,54 +656,6 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         const categoria = categorias.find(c => c.id == p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
-        if (categoria) {
-            const badge = document.createElement('div');
-            badge.className = 'categoria-badge';
-            badge.textContent = categoria.nombre;
-            tarjeta.appendChild(badge);
-        }
-        if (p.imagenUrl) {
-            const img = document.createElement('img');
-            img.src = sanitizeURL(p.imagenUrl);
-            img.alt = p.nombre;
-            img.className = 'tarjeta-imagen';
-            img.loading = 'lazy';
-            img.addEventListener('click', () => abrirModalImagen(p.imagenUrl));
-            tarjeta.appendChild(img);
-        }
-        const contenido = document.createElement('div');
-        contenido.className = 'tarjeta-contenido';
-        const h4 = document.createElement('h4');
-        h4.textContent = p.nombre;
-        const pDesc = document.createElement('p');
-        pDesc.textContent = p.descripcion;
-        const pPrecio = document.createElement('p');
-        pPrecio.className = 'precio';
-        pPrecio.textContent = formatearCOP(p.precio);
-        const pStock = document.createElement('p');
-        pStock.className = 'stock';
-        pStock.textContent = `Disponibles: ${p.stock}`;
-        contenido.append(h4, pDesc, pPrecio, pStock);
-        if (p.stock <= p.stockMinimo) {
-            const alertaP = document.createElement('p');
-            alertaP.style.color = 'var(--color-peligro)';
-            alertaP.style.fontWeight = 'bold';
-            alertaP.textContent = '¡Stock bajo!';
-            contenido.appendChild(alertaP);
-        }
-        const acciones = document.createElement('div');
-        acciones.className = 'tarjeta-acciones';
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn-secundario';
-        btnEditar.textContent = 'Editar';
-        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
-        const btnEliminar = document.createElement('button');
-        btnEliminar.className = 'btn-peligro';
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
-        acciones.append(btnEditar, btnEliminar);
-        contenido.appendChild(acciones);
-        tarjeta.appendChild(contenido);
         contenedor.appendChild(tarjeta);
     });
 }
