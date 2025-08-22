@@ -199,7 +199,7 @@ function editarCategoria(id, nombre) {
 }
 
 async function eliminarCategoria(id) {
-    const productosEnCategoria = productos.filter(p => p.categoriaId == id).length;
+    const productosEnCategoria = productos.filter(p => p.categoriaId === id).length;
     if (productosEnCategoria > 0) {
         return Swal.fire('Acción denegada', `No se puede eliminar la categoría porque hay ${productosEnCategoria} producto(s) asociado(s) a ella.`, 'error');
     }
@@ -255,8 +255,8 @@ formProducto.addEventListener('submit', async function(event) {
         stock: safeParseInt(document.getElementById('producto-stock').value),
         stockMinimo: safeParseInt(document.getElementById('producto-stock-minimo').value),
         imagenUrl: document.getElementById('producto-imagen-url').value.trim(),
-        // CORRECCIÓN: Asegurar que el ID de la categoría se guarde como número o null.
-        categoriaId: categoriaIdValue ? safeParseInt(categoriaIdValue) : null
+        // CORRECCIÓN: Asegurar que el ID de la categoría se guarde como string o null.
+        categoriaId: categoriaIdValue ? String(categoriaIdValue) : null
     };
     
     try {
@@ -640,7 +640,7 @@ function actualizarVistaProductos(nuevaPagina = paginacion.productos.paginaActua
     
     const productosFiltrados = productos.filter(p => {
         const coincideBusqueda = (p.nombre || '').toLowerCase().includes(terminoBusqueda);
-        const coincideCategoria = categoriaSeleccionada === 'todos' || p.categoriaId == categoriaSeleccionada;
+        const coincideCategoria = categoriaSeleccionada === 'todos' || p.categoriaId === categoriaSeleccionada;
         return coincideBusqueda && coincideCategoria;
     });
 
@@ -653,7 +653,7 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
     const contenedor = document.getElementById('lista-productos-tarjetas');
     contenedor.textContent = '';
     productosParaMostrar.forEach(p => {
-        const categoria = categorias.find(c => c.id == p.categoriaId);
+        const categoria = categorias.find(c => c.id === p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
         contenedor.appendChild(tarjeta);
@@ -661,39 +661,7 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
 }
 function renderizarProductosEnLista(productosParaMostrar) {
     const tbody = document.getElementById('tabla-productos-body');
-    tbody.textContent = '';
-    productosParaMostrar.forEach(p => {
-        const categoria = categorias.find(c => c.id == p.categoriaId);
-        const tr = document.createElement('tr');
-        const tdNombre = document.createElement('td');
-        const strong = document.createElement('strong');
-        strong.textContent = p.nombre;
-        tdNombre.appendChild(strong);
-        const tdCategoria = document.createElement('td');
-        tdCategoria.textContent = categoria ? categoria.nombre : 'N/A';
-        const tdDesc = document.createElement('td');
-        tdDesc.textContent = p.descripcion;
-        const tdPrecio = document.createElement('td');
-        tdPrecio.textContent = formatearCOP(p.precio);
-        const tdStock = document.createElement('td');
-        tdStock.textContent = p.stock;
-        const tdAcciones = document.createElement('td');
-        const accionesDiv = document.createElement('div');
-        accionesDiv.className = 'tarjeta-acciones';
-        accionesDiv.style.borderTop = 'none';
-        accionesDiv.style.paddingTop = '0';
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn-secundario';
-        btnEditar.textContent = 'Editar';
-        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
-        const btnEliminar = document.createElement('button');
-        btnEliminar.className = 'btn-peligro';
-        btnEliminar.textContent = 'Eliminar';
-        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
-        accionesDiv.append(btnEditar, btnEliminar);
-        tdAcciones.appendChild(accionesDiv);
-        tr.append(tdNombre, tdCategoria, tdDesc, tdPrecio, tdStock, tdAcciones);
-        tbody.appendChild(tr);
+
     });
 }
 function actualizarVistaClientes(nuevaPagina = paginacion.clientes.paginaActual) {
