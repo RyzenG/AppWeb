@@ -17,7 +17,7 @@
 </head>
 <body>
     <div class="app-container">
-        <nav class="sidebar" id="sidebar">
+        <nav class="sidebar" id="sidebar" role="navigation" aria-label="Navegación lateral">
             <div class="logo-container">
                 <img src="/logo.png" alt="Logo Amazonia" class="logo" loading="lazy">
             </div>
@@ -33,7 +33,7 @@
             </ul>
         </nav>
 
-        <main class="main-content">
+        <main class="main-content" role="main" aria-label="Contenido principal">
             <button id="btn-menu" class="btn-menu" aria-label="Abrir menú lateral">☰</button>
             <button id="toggle-darkmode" class="btn-tema" aria-label="Cambiar tema">🌓</button>
 
@@ -69,13 +69,13 @@
                 <h2>Catálogo de Productos</h2>
                 <div class="acciones-vista">
                     <div class="toggle-vista">
-                        <button id="btn-vista-tarjetas-productos" class="btn-vista activo">Tarjetas</button>
-                        <button id="btn-vista-lista-productos" class="btn-vista">Lista</button>
+                        <button id="btn-vista-tarjetas-productos" class="btn-vista activo" aria-label="Ver productos en tarjetas">Tarjetas</button>
+                        <button id="btn-vista-lista-productos" class="btn-vista" aria-label="Ver productos en lista">Lista</button>
                     </div>
                     <select id="filtro-categoria" class="input-buscador" style="max-width: 200px;"></select>
                     <input type="text" id="buscador-productos" class="input-buscador" placeholder="🔍 Buscar productos por nombre...">
-                    <button class="btn-primario" id="btn-exportar-productos">Exportar a Excel</button>
-                    <button class="btn-primario" id="btn-abrir-modal-producto">+ Agregar Producto</button>
+                    <button class="btn-primario" id="btn-exportar-productos" aria-label="Exportar productos a Excel">Exportar a Excel</button>
+                    <button class="btn-primario" id="btn-abrir-modal-producto" aria-label="Agregar producto" aria-haspopup="dialog" aria-controls="modal-producto">+ Agregar Producto</button>
                 </div>
                 <div id="lista-productos-tarjetas" class="grid-productos"></div>
                 <table id="tabla-productos" class="tabla-datos" style="display: none;">
@@ -148,7 +148,7 @@
                     <input type="text" id="buscador-clientes" class="input-buscador" placeholder="🔍 Buscar clientes por nombre...">
                     <div style="display: flex; gap: 10px;">
                         <button class="btn-primario" id="btn-exportar-clientes">Exportar a Excel</button>
-                        <button class="btn-primario" id="btn-abrir-modal-cliente">+ Agregar Cliente</button>
+                        <button class="btn-primario" id="btn-abrir-modal-cliente" aria-label="Agregar cliente" aria-haspopup="dialog" aria-controls="modal-cliente">+ Agregar Cliente</button>
                     </div>
                 </div>
                 <div id="lista-clientes-tarjetas" class="grid-productos"></div>
@@ -276,9 +276,9 @@
         <div class="spinner"></div>
     </div>
 
-    <div id="modal-producto" class="modal">
+    <div id="modal-producto" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-titulo" aria-label="Formulario de producto">
         <div class="modal-contenido">
-            <span class="cerrar" onclick="cerrarModalProducto()">&times;</span>
+            <button type="button" class="cerrar" aria-label="Cerrar" onclick="cerrarModalProducto()">&times;</button>
             <h3 id="modal-titulo">Agregar Nuevo Producto</h3>
             <form id="form-producto">
                 <input type="hidden" id="producto-id">
@@ -302,9 +302,9 @@
             </form>
         </div>
     </div>
-    <div id="modal-cliente" class="modal">
+    <div id="modal-cliente" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-cliente-titulo" aria-label="Formulario de cliente">
         <div class="modal-contenido">
-            <span class="cerrar" onclick="cerrarModalCliente()">&times;</span>
+            <button type="button" class="cerrar" aria-label="Cerrar" onclick="cerrarModalCliente()">&times;</button>
             <h3 id="modal-cliente-titulo">Agregar Nuevo Cliente</h3>
             <form id="form-cliente">
                 <input type="hidden" id="cliente-id">
@@ -320,10 +320,10 @@
             </form>
         </div>
     </div>
-    <div id="modal-detalle-venta" class="modal">
+    <div id="modal-detalle-venta" class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-detalle-venta-titulo" aria-label="Detalle de venta">
         <div class="modal-contenido">
-            <span class="cerrar" onclick="cerrarModalDetalleVenta()">&times;</span>
-            <h3>Detalles de la Venta</h3>
+            <button type="button" class="cerrar" aria-label="Cerrar" onclick="cerrarModalDetalleVenta()">&times;</button>
+            <h3 id="modal-detalle-venta-titulo">Detalles de la Venta</h3>
             <div>
                 <p><strong>ID de Venta:</strong> <span id="detalle-id"></span></p>
                 <p><strong>Cliente:</strong> <span id="detalle-cliente"></span></p>
@@ -345,9 +345,9 @@
             <button id="btn-generar-factura" class="btn-primario" style="width: 100%; margin-top: 20px;">Generar Factura (PDF)</button>
         </div>
     </div>
-    <div id="modal-imagen" class="modal modal-visor-imagen">
-        <span class="cerrar-visor" onclick="cerrarModalImagen()">&times;</span>
-        <img class="modal-imagen-contenido" id="imagen-expandida">
+    <div id="modal-imagen" class="modal modal-visor-imagen" role="dialog" aria-modal="true" aria-label="Visor de imagen">
+        <button type="button" class="cerrar-visor" aria-label="Cerrar" onclick="cerrarModalImagen()">&times;</button>
+        <img class="modal-imagen-contenido" id="imagen-expandida" alt="Imagen ampliada">
     </div>
     
     <div id="plantilla-factura-contenedor" style="display: none; position: absolute; left: -9999px;">

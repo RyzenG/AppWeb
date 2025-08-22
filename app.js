@@ -19,6 +19,7 @@ let paginacion = {
     reportes: { paginaActual: 1, itemsPorPagina: 10 }
 };
 let ventaActual = [];
+let lastFocusedElement = null;
 
 // ---- DOM SELECTORS (para rendimiento) ----
 const modalProducto = document.getElementById('modal-producto');
@@ -51,11 +52,38 @@ function safeParseFloat(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function safeParseInt(v) { const n = parseInt(v); return isNaN(n) ? 0 : n; }
 
 // ---- MODALES ----
-function abrirModalProducto() { formProducto.reset(); document.getElementById('producto-id').value = ''; modalProductoTitulo.innerText = "Agregar Nuevo Producto"; popularSelectCategorias('producto-categoria'); modalProducto.style.display = 'block'; }
-function cerrarModalProducto() { modalProducto.style.display = 'none'; }
-function abrirModalCliente() { formCliente.reset(); document.getElementById('cliente-id').value = ''; modalClienteTitulo.innerText = "Agregar Nuevo Cliente"; modalCliente.style.display = 'block'; }
-function cerrarModalCliente() { modalCliente.style.display = 'none'; }
+function focusFirstElement(modal) {
+    const focusable = modal.querySelector('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+    if (focusable) focusable.focus();
+}
+
+function abrirModalProducto() {
+    lastFocusedElement = document.activeElement;
+    formProducto.reset();
+    document.getElementById('producto-id').value = '';
+    modalProductoTitulo.innerText = "Agregar Nuevo Producto";
+    popularSelectCategorias('producto-categoria');
+    modalProducto.style.display = 'block';
+    focusFirstElement(modalProducto);
+}
+function cerrarModalProducto() {
+    modalProducto.style.display = 'none';
+    if (lastFocusedElement) lastFocusedElement.focus();
+}
+function abrirModalCliente() {
+    lastFocusedElement = document.activeElement;
+    formCliente.reset();
+    document.getElementById('cliente-id').value = '';
+    modalClienteTitulo.innerText = "Agregar Nuevo Cliente";
+    modalCliente.style.display = 'block';
+    focusFirstElement(modalCliente);
+}
+function cerrarModalCliente() {
+    modalCliente.style.display = 'none';
+    if (lastFocusedElement) lastFocusedElement.focus();
+}
 function abrirModalDetalleVenta(ventaId) {
+    lastFocusedElement = document.activeElement;
     const venta = ventas.find(v => v.id === ventaId);
     if (!venta) return;
     const cliente = clientes.find(c => c.id == venta.clienteId);
@@ -69,10 +97,22 @@ function abrirModalDetalleVenta(ventaId) {
     document.getElementById('detalle-total').innerText = formatearCOP(venta.total);
     document.getElementById('btn-generar-factura').onclick = () => generarFacturaPDF(ventaId);
     modalDetalleVenta.style.display = 'block';
+    focusFirstElement(modalDetalleVenta);
 }
-function cerrarModalDetalleVenta() { modalDetalleVenta.style.display = 'none'; }
-function abrirModalImagen(url) { modalImagen.style.display = 'block'; imagenExpandida.src = url; }
-function cerrarModalImagen() { modalImagen.style.display = 'none'; }
+function cerrarModalDetalleVenta() {
+    modalDetalleVenta.style.display = 'none';
+    if (lastFocusedElement) lastFocusedElement.focus();
+}
+function abrirModalImagen(url) {
+    lastFocusedElement = document.activeElement;
+    modalImagen.style.display = 'block';
+    imagenExpandida.src = url;
+    focusFirstElement(modalImagen);
+}
+function cerrarModalImagen() {
+    modalImagen.style.display = 'none';
+    if (lastFocusedElement) lastFocusedElement.focus();
+}
 
 window.onclick = function(event) {
     if (event.target == modalProducto) cerrarModalProducto();
