@@ -709,7 +709,16 @@ document.addEventListener('DOMContentLoaded', () => {
         localStorage.setItem('amazonia_dark', isDark);
         toastInfo(isDark ? 'Tema oscuro activado' : 'Tema claro activado');
     });
-    
+
+    const scrollBtn = document.getElementById('btn-scroll-top');
+    window.addEventListener('scroll', () => {
+        if (window.scrollY > 300) scrollBtn.classList.add('mostrar');
+        else scrollBtn.classList.remove('mostrar');
+    });
+    scrollBtn.addEventListener('click', () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    });
+
     mostrarSeccion('dashboard');
     cargarDatos();
 });
