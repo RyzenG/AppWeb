@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Gestión Amazonia</title>
+    <link rel="icon" type="image/png" href="/favicon.png">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+    <div class="app-container">
+        <nav class="sidebar" id="sidebar">
+            <div class="logo-container">
+                <img src="/logo.png" alt="Logo Amazonia" class="logo">
+            </div>
+            <ul id="menu-links">
+                <li><a href="#" data-section="dashboard">📊 Dashboard</a></li>
+                <li><a href="#" data-section="catalogo">📦 Catálogo de Productos</a></li>
+                <li><a href="#" data-section="categorias">🏷️ Categorías</a></li>
+                <li><a href="#" data-section="inventario">📈 Inventario</a></li>
+                <li><a href="#" data-section="ventas">💰 Registrar Venta</a></li>
+                <li><a href="#" data-section="clientes">👥 Clientes</a></li>
+                <li><a href="#" data-section="reportes">📈 Reportes</a></li>
+                <li><a href="#" data-section="configuracion">⚙️ Configuración</a></li>
+            </ul>
+        </nav>
+
+        <main class="main-content">
+            <button id="btn-menu" class="btn-menu" aria-label="Abrir menú lateral">☰</button>
+            <button id="toggle-darkmode" class="btn-tema" aria-label="Cambiar tema">🌓</button>
+
+            <section id="dashboard" class="seccion activa">
+                <h2>Dashboard</h2>
+                <div class="kpi-grid">
+                    <div class="kpi-card">
+                        <h4>Ingresos Totales</h4>
+                        <p id="kpi-ingresos-totales">$0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Ventas Realizadas</h4>
+                        <p id="kpi-ventas-realizadas">0</p>
+                    </div>
+                    <div class="kpi-card">
+                        <h4>Ticket Promedio</h4>
+                        <p id="kpi-ticket-promedio">$0</p>
+                    </div>
+                </div>
+                <div class="dashboard-grid">
+                    <div class="chart-container">
+                        <h3>Niveles de Stock por Producto</h3>
+                        <canvas id="stockChart"></canvas>
+                    </div>
+                    <div class="chart-container">
+                        <h3>Productos Más Vendidos (por unidades)</h3>
+                        <canvas id="topProductosChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <section id="catalogo" class="seccion">
+                <h2>Catálogo de Productos</h2>
+                <div class="acciones-vista">
+                    <div class="toggle-vista">
+                        <button id="btn-vista-tarjetas-productos" class="btn-vista activo">Tarjetas</button>
+                        <button id="btn-vista-lista-productos" class="btn-vista">Lista</button>
+                    </div>
+                    <select id="filtro-categoria" class="input-buscador" style="max-width: 200px;"></select>
+                    <input type="text" id="buscador-productos" class="input-buscador" placeholder="🔍 Buscar productos por nombre...">
+                    <button class="btn-primario" id="btn-exportar-productos">Exportar a Excel</button>
+                    <button class="btn-primario" id="btn-abrir-modal-producto">+ Agregar Producto</button>
+                </div>
+                <div id="lista-productos-tarjetas" class="grid-productos"></div>
+                <table id="tabla-productos" class="tabla-datos" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Categoría</th>
+                            <th>Descripción</th>
+                            <th>Precio</th>
+                            <th>Stock</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-productos-body"></tbody>
+                </table>
+                <div id="paginacion-productos" class="paginacion-contenedor"></div>
+            </section>
+            
+            <section id="categorias" class="seccion">
+                <h2>Gestionar Categorías</h2>
+                <div class="dashboard-grid" style="grid-template-columns: 1fr 2fr; align-items: flex-start;">
+                    <div class="config-card">
+                        <h3 id="form-categoria-titulo">Agregar Categoría</h3>
+                        <form id="form-categoria">
+                            <input type="hidden" id="categoria-id">
+                            <label for="categoria-nombre">Nombre de la Categoría:</label>
+                            <input type="text" id="categoria-nombre" required>
+                            <button type="submit" class="btn-primario">Guardar Categoría</button>
+                            <button type="button" id="btn-cancelar-edicion-categoria" class="btn-secundario" style="display: none;">Cancelar</button>
+                        </form>
+                    </div>
+                    <div class="config-card">
+                        <h3>Categorías Existentes</h3>
+                        <div id="lista-categorias"></div>
+                    </div>
+                </div>
+            </section>
+
+            <section id="inventario" class="seccion">
+                <h2>Control de Inventario</h2>
+                <div class="inventario-filtros">
+                    <input type="text" id="inv-buscar" class="input-buscador" placeholder="🔍 Buscar producto...">
+                    <select id="inv-estado">
+                        <option value="todos">Todos</option>
+                        <option value="ok">OK</option>
+                        <option value="bajo">Bajo o 0</option>
+                    </select>
+                </div>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th>Stock Actual</th>
+                            <th>Stock Mínimo</th>
+                            <th>Estado</th>
+                            <th>Ajustar Stock</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-inventario-body"></tbody>
+                </table>
+            </section>
+            
+            <section id="clientes" class="seccion">
+                <h2>Administración de Clientes</h2>
+                <div class="acciones-vista">
+                    <div class="toggle-vista">
+                        <button id="btn-vista-tarjetas-clientes" class="btn-vista activo">Tarjetas</button>
+                        <button id="btn-vista-lista-clientes" class="btn-vista">Lista</button>
+                    </div>
+                    <input type="text" id="buscador-clientes" class="input-buscador" placeholder="🔍 Buscar clientes por nombre...">
+                    <div style="display: flex; gap: 10px;">
+                        <button class="btn-primario" id="btn-exportar-clientes">Exportar a Excel</button>
+                        <button class="btn-primario" id="btn-abrir-modal-cliente">+ Agregar Cliente</button>
+                    </div>
+                </div>
+                <div id="lista-clientes-tarjetas" class="grid-productos"></div>
+                <table id="tabla-clientes" class="tabla-datos" style="display: none;">
+                    <thead>
+                        <tr>
+                            <th>Nombre</th>
+                            <th>Email</th>
+                            <th>Teléfono</th>
+                            <th>Dirección</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-clientes-body"></tbody>
+                </table>
+                <div id="paginacion-clientes" class="paginacion-contenedor"></div>
+            </section>
+
+            <section id="ventas" class="seccion">
+                <h2>Registrar Nueva Venta</h2>
+                <form id="form-venta">
+                    <label for="venta-cliente">Seleccionar Cliente:</label>
+                    <select id="venta-cliente" required></select>
+                    <hr>
+                    <h3>Agregar Productos a la Venta</h3>
+                    <div style="display: flex; gap: 10px; align-items: flex-end;">
+                        <div style="flex-grow: 1;">
+                            <label for="venta-producto">Producto:</label>
+                            <select id="venta-producto"></select>
+                        </div>
+                        <div>
+                            <label for="venta-cantidad">Cantidad:</label>
+                            <input type="number" id="venta-cantidad" value="1" min="1" style="width: 70px;">
+                        </div>
+                        <button type="button" class="btn-primario" id="btn-agregar-a-venta">Agregar</button>
+                    </div>
+                    <h3>Resumen de la Venta</h3>
+                    <table class="tabla-datos">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio Unitario</th>
+                                <th>Subtotal</th>
+                            </tr>
+                        </thead>
+                        <tbody id="resumen-venta-body"></tbody>
+                    </table>
+                    <h3 style="text-align: right;">Total: <span id="venta-total">$0</span></h3>
+                    <button type="submit" class="btn-primario" style="width: 100%; padding: 15px; margin-top: 20px; font-size: 18px;">Finalizar Venta</button>
+                </form>
+            </section>
+
+            <section id="reportes" class="seccion">
+                <h2>Historial de Ventas</h2>
+                <div class="acciones-vista" style="justify-content: flex-end;">
+                    <button class="btn-primario" id="btn-exportar-ventas">Exportar a Excel</button>
+                </div>
+                <table class="tabla-datos">
+                    <thead>
+                        <tr>
+                            <th>ID de Venta</th>
+                            <th>Cliente</th>
+                            <th>Fecha</th>
+                            <th>Total</th>
+                            <th>Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tabla-reportes-body"></tbody>
+                </table>
+                <div id="paginacion-reportes" class="paginacion-contenedor"></div>
+            </section>
+
+            <section id="configuracion" class="seccion">
+                <h2>Configuración</h2>
+                
+                <div class="config-card">
+                    <h3>Apariencia</h3>
+                    <p>Personaliza los colores de tu aplicación. Los cambios se guardarán en este navegador.</p>
+                    <div class="grid-configuracion">
+                        <div class="control-config">
+                            <label for="color-sidebar">Color de la Barra Lateral</label>
+                            <input type="color" id="color-sidebar">
+                        </div>
+                        <div class="control-config">
+                            <label for="color-texto-sidebar">Color del Texto (Barra Lateral)</label>
+                            <input type="color" id="color-texto-sidebar">
+                        </div>
+                        <div class="control-config">
+                            <label for="color-botones-primario">Color de Botones Principales</label>
+                            <input type="color" id="color-botones-primario">
+                        </div>
+                        <div class="control-config">
+                            <label for="color-botones-secundario">Color de Botones (Editar)</label>
+                            <input type="color" id="color-botones-secundario">
+                        </div>
+                        <div class="control-config">
+                            <label for="color-botones-peligro">Color de Botones (Eliminar)</label>
+                            <input type="color" id="color-botones-peligro">
+                        </div>
+                    </div>
+                    <button id="btn-restaurar-colores" class="btn-secundario" style="width: auto; margin-top: 20px;">Restaurar Colores de Fábrica</button>
+                </div>
+
+                <div class="config-card">
+                    <h3>Copias de Seguridad</h3>
+                    <p>Guarda toda la información de la aplicación en un archivo o restáurala desde una copia anterior.</p>
+                    <div class="acciones-backup">
+                        <button id="btn-exportar-backup" class="btn-primario">Exportar Copia de Seguridad</button>
+                        <button id="btn-importar-backup" class="btn-secundario">Importar desde Archivo</button>
+                        <input type="file" id="importar-backup-input" accept=".json" style="display: none;">
+                    </div>
+                </div>
+
+                <div class="zona-peligro config-card">
+                    <h3>Zona de Peligro</h3>
+                    <p>Las siguientes acciones son permanentes y no se pueden deshacer.</p>
+                    <button id="btn-reiniciar-app" class="btn-peligro" style="width: auto;">Reiniciar Todos los Datos</button>
+                </div>
+            </section>
+        </main>
+    </div>
+    
+    <div id="loading-overlay" class="loading-overlay">
+        <div class="spinner"></div>
+    </div>
+
+    <div id="modal-producto" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar" onclick="cerrarModalProducto()">&times;</span>
+            <h3 id="modal-titulo">Agregar Nuevo Producto</h3>
+            <form id="form-producto">
+                <input type="hidden" id="producto-id">
+                <label for="producto-nombre">Nombre del Producto:</label>
+                <input type="text" id="producto-nombre" required>
+                
+                <label for="producto-categoria">Categoría:</label>
+                <select id="producto-categoria" required></select>
+
+                <label for="producto-descripcion">Descripción:</label>
+                <textarea id="producto-descripcion"></textarea>
+                <label for="producto-precio">Precio:</label>
+                <input type="number" id="producto-precio" required>
+                <label for="producto-stock">Stock Inicial:</label>
+                <input type="number" id="producto-stock" required>
+                <label for="producto-stock-minimo">Alerta de Stock Bajo:</label>
+                <input type="number" id="producto-stock-minimo" placeholder="Ej: 5" required>
+                <label for="producto-imagen-url">URL de la Imagen:</label>
+                <input type="text" id="producto-imagen-url" placeholder="/nombre-de-imagen.jpg">
+                <button type="submit" class="btn-primario">Guardar Producto</button>
+            </form>
+        </div>
+    </div>
+    <div id="modal-cliente" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar" onclick="cerrarModalCliente()">&times;</span>
+            <h3 id="modal-cliente-titulo">Agregar Nuevo Cliente</h3>
+            <form id="form-cliente">
+                <input type="hidden" id="cliente-id">
+                <label for="cliente-nombre">Nombre:</label>
+                <input type="text" id="cliente-nombre" required>
+                <label for="cliente-email">Email:</label>
+                <input type="email" id="cliente-email">
+                <label for="cliente-telefono">Teléfono:</label>
+                <input type="tel" id="cliente-telefono">
+                <label for="cliente-direccion">Dirección:</label>
+                <input type="text" id="cliente-direccion">
+                <button type="submit" class="btn-primario">Guardar Cliente</button>
+            </form>
+        </div>
+    </div>
+    <div id="modal-detalle-venta" class="modal">
+        <div class="modal-contenido">
+            <span class="cerrar" onclick="cerrarModalDetalleVenta()">&times;</span>
+            <h3>Detalles de la Venta</h3>
+            <div>
+                <p><strong>ID de Venta:</strong> <span id="detalle-id"></span></p>
+                <p><strong>Cliente:</strong> <span id="detalle-cliente"></span></p>
+                <p><strong>Fecha:</strong> <span id="detalle-fecha"></span></p>
+            </div>
+            <h4>Productos Vendidos:</h4>
+            <table class="tabla-datos">
+                <thead>
+                    <tr>
+                        <th>Producto</th>
+                        <th>Cantidad</th>
+                        <th>Precio Unitario</th>
+                        <th>Subtotal</th>
+                    </tr>
+                </thead>
+                <tbody id="detalle-venta-productos-body"></tbody>
+            </table>
+            <h3 style="text-align: right;">Total Venta: <span id="detalle-total"></span></h3>
+            <button id="btn-generar-factura" class="btn-primario" style="width: 100%; margin-top: 20px;">Generar Factura (PDF)</button>
+        </div>
+    </div>
+    <div id="modal-imagen" class="modal modal-visor-imagen">
+        <span class="cerrar-visor" onclick="cerrarModalImagen()">&times;</span>
+        <img class="modal-imagen-contenido" id="imagen-expandida">
+    </div>
+    
+    <div id="plantilla-factura-contenedor" style="display: none; position: absolute; left: -9999px;">
+        <div id="plantilla-factura">
+            <div class="factura-header">
+                <div class="factura-titulo">
+                    <h1>FACTURA</h1>
+                    <div class="factura-num-box">
+                        <p>Nº: <span id="factura-id-plantilla"></span></p>
+                    </div>
+                </div>
+                <img id="factura-logo" src="/logo.png" class="factura-logo">
+            </div>
+            <div class="factura-info">
+                <div class="factura-columna">
+                    <h3>DATOS DEL CLIENTE</h3>
+                    <p id="factura-cliente-nombre"></p>
+                    <p id="factura-cliente-email"></p>
+                    <p id="factura-cliente-telefono"></p>
+                </div>
+                <div class="factura-columna" style="text-align: right;">
+                    <h3>AMAZONIA</h3>
+                    <p>Amazoniaenconcreto@Gmail.com</p>
+                    <p>@Amazoniaconcrete</p>
+                    <p>Fecha: <span id="factura-fecha-plantilla"></span></p>
+                </div>
+            </div>
+            <div class="factura-tabla-contenedor">
+                <table class="factura-tabla">
+                    <thead>
+                        <tr><th>Detalle</th><th>Cantidad</th><th>Precio</th><th>Total</th></tr>
+                    </thead>
+                    <tbody id="factura-tabla-body"></tbody>
+                </table>
+            </div>
+            <div class="factura-resumen">
+                <div class="factura-total-box">
+                    <p>TOTAL</p>
+                    <p id="factura-total-valor"></p>
+                </div>
+            </div>
+            <div class="factura-footer">
+                <div class="factura-gracias-box">
+                    <p>¡Gracias por tu compra!</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
