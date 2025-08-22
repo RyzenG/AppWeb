@@ -5,10 +5,20 @@ const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:300
 const IMAGE_BASE_PATH = './';
 function buildImageSrc(imagenUrl) {
     if (!imagenUrl) return '';
-    if (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://') || imagenUrl.startsWith('./') || imagenUrl.startsWith('/')) {
-        return imagenUrl;
+
+    const trimmed = imagenUrl.trim();
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:')) return '';
+
+    const url = (lower.startsWith('http://') || lower.startsWith('https://') || trimmed.startsWith('./') || trimmed.startsWith('/'))
+        ? trimmed
+        : `${IMAGE_BASE_PATH}${trimmed}`;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+        return '';
     }
-    return `${IMAGE_BASE_PATH}${imagenUrl}`;
 }
 
 // ---- ESTADO GLOBAL ----
@@ -57,14 +67,6 @@ function formatearCOP(valor) { return new Intl.NumberFormat('es-CO', { style: 'c
 function formatearNumeroFactura(numero) { return numero.toString().padStart(4, '0'); }
 function safeParseFloat(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function safeParseInt(v) { const n = parseInt(v); return isNaN(n) ? 0 : n; }
-function sanitizeURL(url) {
-    try {
-        const parsed = new URL(url, window.location.origin);
-        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
-    } catch {
-        return '';
-    }
-}
 
 // ---- MODALES ----
 function abrirModalProducto() { formProducto.reset(); document.getElementById('producto-id').value = ''; modalProductoTitulo.innerText = "Agregar Nuevo Producto"; popularSelectCategorias('producto-categoria'); modalProducto.style.display = 'block'; }
@@ -657,40 +659,6 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
 
-        // Imagen del producto
-        const img = document.createElement('img');
-        img.className = 'tarjeta-imagen';
-        img.src = buildImageSrc(p.imagenUrl);
-        img.alt = p.nombre;
-        img.addEventListener('click', () => abrirModalImagen(img.src));
-        tarjeta.appendChild(img);
-
-        // Etiqueta de categoría (si existe)
-        if (categoria) {
-            const badge = document.createElement('span');
-            badge.className = 'categoria-badge';
-            badge.textContent = categoria.nombre;
-            tarjeta.appendChild(badge);
-        }
-
-        // Contenido de la tarjeta
-        const contenido = document.createElement('div');
-        contenido.className = 'tarjeta-contenido';
-
-        const h4 = document.createElement('h4');
-        h4.textContent = p.nombre;
-
-        const pPrecio = document.createElement('p');
-        pPrecio.className = 'precio';
-        pPrecio.textContent = formatearCOP(p.precio);
-
-        const pStock = document.createElement('p');
-        pStock.className = 'stock';
-        pStock.textContent = `Stock: ${p.stock}`;
-
-        // Acciones
-        const acciones = document.createElement('div');
-        acciones.className = 'tarjeta-acciones';
 
         const btnEditar = document.createElement('button');
         btnEditar.className = 'btn-secundario';
@@ -701,11 +669,6 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         btnEliminar.className = 'btn-peligro';
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
-
-        acciones.append(btnEditar, btnEliminar);
-        contenido.append(h4, pPrecio, pStock, acciones);
-        tarjeta.appendChild(contenido);
-
         contenedor.appendChild(tarjeta);
     });
 }
@@ -716,35 +679,12 @@ function renderizarProductosEnLista(productosParaMostrar) {
         const categoria = categorias.find(c => c.id === p.categoriaId);
         const tr = document.createElement('tr');
 
-        const tdNombre = document.createElement('td');
-        tdNombre.textContent = p.nombre;
-
-        const tdCat = document.createElement('td');
-        tdCat.textContent = categoria ? categoria.nombre : 'Sin categoría';
-
-        const tdDesc = document.createElement('td');
-        tdDesc.textContent = p.descripcion || '';
-
-        const tdPrecio = document.createElement('td');
-        tdPrecio.textContent = formatearCOP(p.precio);
-
-        const tdStock = document.createElement('td');
-        tdStock.textContent = p.stock;
-
-        const tdAcciones = document.createElement('td');
-        const btnEditar = document.createElement('button');
-        btnEditar.className = 'btn-secundario';
-        btnEditar.style.marginRight = '5px';
-        btnEditar.textContent = 'Editar';
-        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
 
         const btnEliminar = document.createElement('button');
         btnEliminar.className = 'btn-peligro';
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
 
-        tdAcciones.append(btnEditar, btnEliminar);
-        tr.append(tdNombre, tdCat, tdDesc, tdPrecio, tdStock, tdAcciones);
         tbody.appendChild(tr);
     });
 }
