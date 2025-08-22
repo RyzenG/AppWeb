@@ -656,12 +656,96 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         const categoria = categorias.find(c => c.id === p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
+
+        // Imagen del producto
+        const img = document.createElement('img');
+        img.className = 'tarjeta-imagen';
+        img.src = buildImageSrc(p.imagenUrl);
+        img.alt = p.nombre;
+        img.addEventListener('click', () => abrirModalImagen(img.src));
+        tarjeta.appendChild(img);
+
+        // Etiqueta de categoría (si existe)
+        if (categoria) {
+            const badge = document.createElement('span');
+            badge.className = 'categoria-badge';
+            badge.textContent = categoria.nombre;
+            tarjeta.appendChild(badge);
+        }
+
+        // Contenido de la tarjeta
+        const contenido = document.createElement('div');
+        contenido.className = 'tarjeta-contenido';
+
+        const h4 = document.createElement('h4');
+        h4.textContent = p.nombre;
+
+        const pPrecio = document.createElement('p');
+        pPrecio.className = 'precio';
+        pPrecio.textContent = formatearCOP(p.precio);
+
+        const pStock = document.createElement('p');
+        pStock.className = 'stock';
+        pStock.textContent = `Stock: ${p.stock}`;
+
+        // Acciones
+        const acciones = document.createElement('div');
+        acciones.className = 'tarjeta-acciones';
+
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
+
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
+
+        acciones.append(btnEditar, btnEliminar);
+        contenido.append(h4, pPrecio, pStock, acciones);
+        tarjeta.appendChild(contenido);
+
         contenedor.appendChild(tarjeta);
     });
 }
 function renderizarProductosEnLista(productosParaMostrar) {
     const tbody = document.getElementById('tabla-productos-body');
+    tbody.textContent = '';
+    productosParaMostrar.forEach(p => {
+        const categoria = categorias.find(c => c.id === p.categoriaId);
+        const tr = document.createElement('tr');
 
+        const tdNombre = document.createElement('td');
+        tdNombre.textContent = p.nombre;
+
+        const tdCat = document.createElement('td');
+        tdCat.textContent = categoria ? categoria.nombre : 'Sin categoría';
+
+        const tdDesc = document.createElement('td');
+        tdDesc.textContent = p.descripcion || '';
+
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = formatearCOP(p.precio);
+
+        const tdStock = document.createElement('td');
+        tdStock.textContent = p.stock;
+
+        const tdAcciones = document.createElement('td');
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.style.marginRight = '5px';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
+
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
+
+        tdAcciones.append(btnEditar, btnEliminar);
+        tr.append(tdNombre, tdCat, tdDesc, tdPrecio, tdStock, tdAcciones);
+        tbody.appendChild(tr);
     });
 }
 function actualizarVistaClientes(nuevaPagina = paginacion.clientes.paginaActual) {
