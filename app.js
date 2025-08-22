@@ -81,6 +81,15 @@ window.onclick = function(event) {
     if (event.target == modalImagen) cerrarModalImagen();
 };
 
+window.addEventListener('keydown', (event) => {
+    if (event.key === 'Escape') {
+        cerrarModalProducto();
+        cerrarModalCliente();
+        cerrarModalDetalleVenta();
+        cerrarModalImagen();
+    }
+});
+
 // ---- CARGA DE DATOS ----
 async function cargarDatos() {
     mostrarLoader();
