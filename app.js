@@ -703,15 +703,21 @@ function renderizarClientesEnTarjetas(clientesParaMostrar) {
     contenedor.textContent = '';
     clientesParaMostrar.forEach(c => {
         const tarjeta = document.createElement('div');
-        tarjeta.className = 'tarjeta-producto';
+        tarjeta.className = 'tarjeta';
         const contenido = document.createElement('div');
         contenido.className = 'tarjeta-contenido';
         const h4 = document.createElement('h4');
-        h4.textContent = c.nombre;
+        h4.textContent = c.nombre || '';
         const pEmail = document.createElement('p');
-        pEmail.textContent = `Email: ${c.email || 'N/A'}`;
+        pEmail.textContent = c.email || '';
         const pTel = document.createElement('p');
-        pTel.textContent = `Teléfono: ${c.telefono || 'N/A'}`;
+        pTel.textContent = c.telefono || '';
+        contenido.append(h4, pEmail, pTel);
+        if (c.direccion) {
+            const pDir = document.createElement('p');
+            pDir.textContent = c.direccion;
+            contenido.appendChild(pDir);
+        }
         const acciones = document.createElement('div');
         acciones.className = 'tarjeta-acciones';
         const btnEditar = document.createElement('button');
@@ -723,7 +729,7 @@ function renderizarClientesEnTarjetas(clientesParaMostrar) {
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
         acciones.append(btnEditar, btnEliminar);
-        contenido.append(h4, pEmail, pTel, acciones);
+        contenido.appendChild(acciones);
         tarjeta.appendChild(contenido);
         contenedor.appendChild(tarjeta);
     });
@@ -734,23 +740,24 @@ function renderizarClientesEnLista(clientesParaMostrar) {
     clientesParaMostrar.forEach(c => {
         const tr = document.createElement('tr');
         const tdNombre = document.createElement('td');
-        tdNombre.textContent = c.nombre;
+        tdNombre.textContent = c.nombre || '';
         const tdEmail = document.createElement('td');
-        tdEmail.textContent = c.email || 'N/A';
+        tdEmail.textContent = c.email || '';
         const tdTel = document.createElement('td');
-        tdTel.textContent = c.telefono || 'N/A';
-        const tdAcciones = document.createElement('td');
+        tdTel.textContent = c.telefono || '';
+        const tdDir = document.createElement('td');
+        tdDir.textContent = c.direccion || '';
+        const tdAcc = document.createElement('td');
         const btnEditar = document.createElement('button');
         btnEditar.className = 'btn-secundario';
-        btnEditar.style.marginRight = '5px';
         btnEditar.textContent = 'Editar';
         btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
         const btnEliminar = document.createElement('button');
         btnEliminar.className = 'btn-peligro';
         btnEliminar.textContent = 'Eliminar';
         btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
-        tdAcciones.append(btnEditar, btnEliminar);
-        tr.append(tdNombre, tdEmail, tdTel, tdAcciones);
+        tdAcc.append(btnEditar, btnEliminar);
+        tr.append(tdNombre, tdEmail, tdTel, tdDir, tdAcc);
         tbody.appendChild(tr);
     });
 }
@@ -791,8 +798,16 @@ function renderizarReportes(nuevaPagina = paginacion.reportes.paginaActual) {
 }
 function renderizarInventario() {
     const tbody = document.getElementById('tabla-inventario-body');
+    if (!tbody) return;
+    const q = (document.getElementById('inv-buscar')?.value || '').toLowerCase();
+    const estado = document.getElementById('inv-estado')?.value || 'todos';
+    const prods = productos.filter(p => {
+        const okQ = (p.nombre || '').toLowerCase().includes(q);
+        const okE = estado === 'todos' ? true : (estado === 'ok' ? p.stock > p.stockMinimo : p.stock <= p.stockMinimo);
+        return okQ && okE;
+    });
     tbody.textContent = '';
-    productos.forEach(p => {
+    prods.forEach(p => {
         const tr = document.createElement('tr');
         const tdNombre = document.createElement('td');
         tdNombre.textContent = p.nombre;
@@ -801,17 +816,19 @@ function renderizarInventario() {
         const tdMin = document.createElement('td');
         tdMin.textContent = p.stockMinimo;
         const tdEstado = document.createElement('td');
-        const spanEstado = document.createElement('span');
-        const estadoOk = p.stock > p.stockMinimo;
-        spanEstado.className = `estado-tag ${estadoOk ? 'estado-ok' : 'estado-bajo'}`;
-        spanEstado.textContent = estadoOk ? 'OK' : 'Bajo';
-        tdEstado.appendChild(spanEstado);
-        const tdAjuste = document.createElement('td');
+        const estadoSpan = document.createElement('span');
+        const ok = p.stock > p.stockMinimo;
+        estadoSpan.className = ok ? 'estado-tag stock-ok' : 'estado-tag stock-bajo';
+        estadoSpan.textContent = ok ? 'OK' : 'BAJO';
+        tdEstado.appendChild(estadoSpan);
+        const tdAcciones = document.createElement('td');
+        const ajusteDiv = document.createElement('div');
+        ajusteDiv.className = 'ajuste-stock';
         const input = document.createElement('input');
         input.type = 'number';
-        input.className = 'input-ajuste-stock';
         input.id = `ajuste-stock-${p.id}`;
         input.placeholder = '0';
+        input.className = 'input-ajuste';
         const btnSumar = document.createElement('button');
         btnSumar.className = 'btn-secundario';
         btnSumar.style.padding = '5px 10px';
@@ -822,8 +839,9 @@ function renderizarInventario() {
         btnRestar.style.padding = '5px 10px';
         btnRestar.textContent = '-';
         btnRestar.addEventListener('click', () => ajustarStock(p.id, 'restar'));
-        tdAjuste.append(input, btnSumar, btnRestar);
-        tr.append(tdNombre, tdStock, tdMin, tdEstado, tdAjuste);
+        ajusteDiv.append(input, btnSumar, btnRestar);
+        tdAcciones.appendChild(ajusteDiv);
+        tr.append(tdNombre, tdStock, tdMin, tdEstado, tdAcciones);
         tbody.appendChild(tr);
     });
 }
@@ -893,6 +911,11 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('filtro-categoria').addEventListener('change', () => actualizarVistaProductos(1));
     document.getElementById('buscador-clientes').addEventListener('input', () => actualizarVistaClientes(1));
     document.getElementById('btn-cancelar-edicion-categoria').addEventListener('click', cancelarEdicionCategoria);
+
+    const invBuscar = document.getElementById('inv-buscar');
+    if (invBuscar) invBuscar.addEventListener('input', () => renderizarInventario());
+    const invEstado = document.getElementById('inv-estado');
+    if (invEstado) invEstado.addEventListener('change', () => renderizarInventario());
     
     document.getElementById('btn-vista-tarjetas-productos').addEventListener('click', () => { vistaProductosActual = 'tarjetas'; actualizarVistaProductos(1); });
     document.getElementById('btn-vista-lista-productos').addEventListener('click', () => { vistaProductosActual = 'lista'; actualizarVistaProductos(1); });
@@ -1002,135 +1025,4 @@ window.cambiarPagina = cambiarPagina;
 window.editarCategoria = editarCategoria;
 window.eliminarCategoria = eliminarCategoria;
 
-// === Overrides agregados ===
-(function(){
-  // Clientes tarjetas (incluye dirección)
-  const oldTarjetas = window.renderizarClientesEnTarjetas;
-  window.renderizarClientesEnTarjetas = function(clientesParaMostrar){
-    const contenedor = document.getElementById('lista-clientes-tarjetas');
-    if (!contenedor) return oldTarjetas && oldTarjetas(clientesParaMostrar);
-    contenedor.textContent = '';
-    clientesParaMostrar.forEach(c => {
-      const tarjeta = document.createElement('div');
-      tarjeta.className = 'tarjeta';
-      const contenido = document.createElement('div');
-      contenido.className = 'tarjeta-contenido';
-      const h4 = document.createElement('h4');
-      h4.textContent = c.nombre || '';
-      const pEmail = document.createElement('p');
-      pEmail.textContent = c.email || '';
-      const pTel = document.createElement('p');
-      pTel.textContent = c.telefono || '';
-      contenido.append(h4, pEmail, pTel);
-      if (c.direccion) {
-        const pDir = document.createElement('p');
-        pDir.textContent = c.direccion;
-        contenido.appendChild(pDir);
-      }
-      const acciones = document.createElement('div');
-      acciones.className = 'tarjeta-acciones';
-      const btnEditar = document.createElement('button');
-      btnEditar.className = 'btn-secundario';
-      btnEditar.textContent = 'Editar';
-      btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
-      const btnEliminar = document.createElement('button');
-      btnEliminar.className = 'btn-peligro';
-      btnEliminar.textContent = 'Eliminar';
-      btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
-      acciones.append(btnEditar, btnEliminar);
-      contenido.appendChild(acciones);
-      tarjeta.appendChild(contenido);
-      contenedor.appendChild(tarjeta);
-    });
-  };
-
-  // Clientes lista (añade columna Dirección)
-  const oldLista = window.renderizarClientesEnLista;
-  window.renderizarClientesEnLista = function(clientesParaMostrar){
-    const tbody = document.getElementById('tabla-clientes-body');
-    if (!tbody) return oldLista && oldLista(clientesParaMostrar);
-    tbody.textContent = '';
-    clientesParaMostrar.forEach(c => {
-      const tr = document.createElement('tr');
-      const tdNombre = document.createElement('td');
-      tdNombre.textContent = c.nombre || '';
-      const tdEmail = document.createElement('td');
-      tdEmail.textContent = c.email || '';
-      const tdTel = document.createElement('td');
-      tdTel.textContent = c.telefono || '';
-      const tdDir = document.createElement('td');
-      tdDir.textContent = c.direccion || '';
-      const tdAcc = document.createElement('td');
-      const btnEditar = document.createElement('button');
-      btnEditar.className = 'btn-secundario';
-      btnEditar.textContent = 'Editar';
-      btnEditar.addEventListener('click', () => abrirModalParaEditarCliente(c.id));
-      const btnEliminar = document.createElement('button');
-      btnEliminar.className = 'btn-peligro';
-      btnEliminar.textContent = 'Eliminar';
-      btnEliminar.addEventListener('click', () => eliminarCliente(c.id));
-      tdAcc.append(btnEditar, btnEliminar);
-      tr.append(tdNombre, tdEmail, tdTel, tdDir, tdAcc);
-      tbody.appendChild(tr);
-    });
-  };
-
-  // Inventario con filtros
-  const oldInv = window.renderizarInventario;
-  window.renderizarInventario = function(){
-    const tbody = document.getElementById('tabla-inventario-body');
-    if (!tbody) return oldInv && oldInv();
-    const q = (document.getElementById('inv-buscar')?.value || '').toLowerCase();
-    const estado = document.getElementById('inv-estado')?.value || 'todos';
-    const prods = (window.productos || []).filter(p => {
-      const okQ = (p.nombre || '').toLowerCase().includes(q);
-      const okE = estado === 'todos' ? true : (estado === 'ok' ? p.stock > p.stockMinimo : p.stock <= p.stockMinimo);
-      return okQ && okE;
-    });
-    tbody.textContent = '';
-    prods.forEach(p => {
-      const tr = document.createElement('tr');
-      const tdNombre = document.createElement('td');
-      tdNombre.textContent = p.nombre;
-      const tdStock = document.createElement('td');
-      tdStock.textContent = p.stock;
-      const tdMin = document.createElement('td');
-      tdMin.textContent = p.stockMinimo;
-      const tdEstado = document.createElement('td');
-      const estadoSpan = document.createElement('span');
-      const ok = p.stock > p.stockMinimo;
-      estadoSpan.className = ok ? 'estado-tag stock-ok' : 'estado-tag stock-bajo';
-      estadoSpan.textContent = ok ? 'OK' : 'BAJO';
-      tdEstado.appendChild(estadoSpan);
-      const tdAcciones = document.createElement('td');
-      const ajusteDiv = document.createElement('div');
-      ajusteDiv.className = 'ajuste-stock';
-      const input = document.createElement('input');
-      input.type = 'number';
-      input.id = `ajuste-stock-${p.id}`;
-      input.placeholder = '0';
-      input.className = 'input-ajuste';
-      const btnSumar = document.createElement('button');
-      btnSumar.className = 'btn-secundario';
-      btnSumar.style.padding = '5px 10px';
-      btnSumar.textContent = '+';
-      btnSumar.addEventListener('click', () => ajustarStock(p.id, 'sumar'));
-      const btnRestar = document.createElement('button');
-      btnRestar.className = 'btn-peligro';
-      btnRestar.style.padding = '5px 10px';
-      btnRestar.textContent = '-';
-      btnRestar.addEventListener('click', () => ajustarStock(p.id, 'restar'));
-      ajusteDiv.append(input, btnSumar, btnRestar);
-      tdAcciones.appendChild(ajusteDiv);
-      tr.append(tdNombre, tdStock, tdMin, tdEstado, tdAcciones);
-      tbody.appendChild(tr);
-    });
-  };
-
-  window.addEventListener('DOMContentLoaded', () => {
-    const b = document.getElementById('inv-buscar');
-    const s = document.getElementById('inv-estado');
-    if (b) b.addEventListener('input', () => window.renderizarInventario());
-    if (s) s.addEventListener('change', () => window.renderizarInventario());
-  });
-})();
+// Fin del archivo
