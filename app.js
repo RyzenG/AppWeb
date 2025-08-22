@@ -49,6 +49,11 @@ function formatearCOP(valor) { return new Intl.NumberFormat('es-CO', { style: 'c
 function formatearNumeroFactura(numero) { return numero.toString().padStart(4, '0'); }
 function safeParseFloat(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function safeParseInt(v) { const n = parseInt(v); return isNaN(n) ? 0 : n; }
+function crearElementoSeguro(tag, text = '') {
+    const el = document.createElement(tag);
+    el.textContent = text;
+    return el;
+}
 
 // ---- MODALES ----
 function abrirModalProducto() { formProducto.reset(); document.getElementById('producto-id').value = ''; modalProductoTitulo.innerText = "Agregar Nuevo Producto"; popularSelectCategorias('producto-categoria'); modalProducto.style.display = 'block'; }
@@ -65,7 +70,15 @@ function abrirModalDetalleVenta(ventaId) {
     document.getElementById('detalle-fecha').innerText = fecha;
     const productosBody = document.getElementById('detalle-venta-productos-body');
     productosBody.innerHTML = '';
-    venta.productosVendidos.forEach(item => { const subtotal = item.precio * item.cantidad; productosBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(subtotal)}</td></tr>`; });
+    venta.productosVendidos.forEach(item => {
+        const subtotal = item.precio * item.cantidad;
+        const tr = document.createElement('tr');
+        tr.appendChild(crearElementoSeguro('td', item.nombre));
+        tr.appendChild(crearElementoSeguro('td', item.cantidad));
+        tr.appendChild(crearElementoSeguro('td', formatearCOP(item.precio)));
+        tr.appendChild(crearElementoSeguro('td', formatearCOP(subtotal)));
+        productosBody.appendChild(tr);
+    });
     document.getElementById('detalle-total').innerText = formatearCOP(venta.total);
     document.getElementById('btn-generar-factura').onclick = () => generarFacturaPDF(ventaId);
     modalDetalleVenta.style.display = 'block';
@@ -116,15 +129,32 @@ async function cargarDatos() {
 // ---- CATEGORÍAS (SECCIÓN) ----
 function renderizarVistaCategorias() {
     const lista = document.getElementById('lista-categorias');
-    lista.innerHTML = categorias.map(cat => `
-        <div class="categoria-item">
-            <span>${cat.nombre}</span>
-            <div class="categoria-item-acciones">
-                <button class="btn-secundario" onclick="editarCategoria(${cat.id}, '${cat.nombre}')">Editar</button>
-                <button class="btn-peligro" onclick="eliminarCategoria(${cat.id})">Eliminar</button>
-            </div>
-        </div>
-    `).join('');
+    lista.innerHTML = '';
+    categorias.forEach(cat => {
+        const itemDiv = document.createElement('div');
+        itemDiv.className = 'categoria-item';
+
+        const nombreSpan = crearElementoSeguro('span', cat.nombre);
+        itemDiv.appendChild(nombreSpan);
+
+        const accionesDiv = document.createElement('div');
+        accionesDiv.className = 'categoria-item-acciones';
+
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.onclick = () => editarCategoria(cat.id, cat.nombre);
+
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.onclick = () => eliminarCategoria(cat.id);
+
+        accionesDiv.appendChild(btnEditar);
+        accionesDiv.appendChild(btnEliminar);
+        itemDiv.appendChild(accionesDiv);
+        lista.appendChild(itemDiv);
+    });
 }
 
 function cancelarEdicionCategoria() {
@@ -385,7 +415,12 @@ function generarFacturaPDF(ventaId) {
     const tablaBody = document.getElementById('factura-tabla-body');
     tablaBody.innerHTML = '';
     venta.productosVendidos.forEach(item => {
-        tablaBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(item.precio * item.cantidad)}</td></tr>`;
+        const tr = document.createElement('tr');
+        tr.appendChild(crearElementoSeguro('td', item.nombre));
+        tr.appendChild(crearElementoSeguro('td', item.cantidad));
+        tr.appendChild(crearElementoSeguro('td', formatearCOP(item.precio)));
+        tr.appendChild(crearElementoSeguro('td', formatearCOP(item.precio * item.cantidad)));
+        tablaBody.appendChild(tr);
     });
     const iva = venta.total * 0.21;
     document.getElementById('factura-iva-valor').innerText = formatearCOP(iva);
@@ -552,9 +587,24 @@ function renderizarControlesPaginacion({ contenedorId, paginaActual, itemsPorPag
     if (totalPaginas <= 1) return;
     const wrapper = document.createElement('div');
     wrapper.className = 'paginacion-controles';
-    wrapper.innerHTML += `<button ${paginaActual === 1 ? 'disabled' : ''} onclick="cambiarPagina('${tipo}', ${paginaActual - 1})">Anterior</button>`;
-    for (let i = 1; i <= totalPaginas; i++) { wrapper.innerHTML += `<button class="${i === paginaActual ? 'activo' : ''}" onclick="cambiarPagina('${tipo}', ${i})">${i}</button>`; }
-    wrapper.innerHTML += `<button ${paginaActual === totalPaginas ? 'disabled' : ''} onclick="cambiarPagina('${tipo}', ${paginaActual + 1})">Siguiente</button>`;
+
+    const btnPrev = crearElementoSeguro('button', 'Anterior');
+    if (paginaActual === 1) btnPrev.disabled = true;
+    btnPrev.onclick = () => cambiarPagina(tipo, paginaActual - 1);
+    wrapper.appendChild(btnPrev);
+
+    for (let i = 1; i <= totalPaginas; i++) {
+        const btn = crearElementoSeguro('button', i);
+        if (i === paginaActual) btn.className = 'activo';
+        btn.onclick = () => cambiarPagina(tipo, i);
+        wrapper.appendChild(btn);
+    }
+
+    const btnNext = crearElementoSeguro('button', 'Siguiente');
+    if (paginaActual === totalPaginas) btnNext.disabled = true;
+    btnNext.onclick = () => cambiarPagina(tipo, paginaActual + 1);
+    wrapper.appendChild(btnNext);
+
     contenedor.appendChild(wrapper);
 }
 function cambiarPagina(tipo, nuevaPagina) {
