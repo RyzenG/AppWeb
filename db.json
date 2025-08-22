@@ -47,21 +47,6 @@
     }
   ],
   "metadata": {
-    "item": {
-      "item": {
-        "item": {
-          "item": {
-            "item": {
-              "ultimaFactura": 0
-            },
-            "ultimaFactura": 1
-          },
-          "ultimaFactura": 0
-        },
-        "ultimaFactura": 1
-      },
-      "ultimaFactura": 0
-    },
     "ultimaFactura": 1
   }
 }

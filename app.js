@@ -454,7 +454,11 @@ async function importarBackup(event) {
                 ...data.ventas.map(v => fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) })),
                 ...data.categorias.map(cat => fetch(`${API_URL}/categorias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cat) }))
             ]);
-            await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data.metadata) });
+            await fetch(`${API_URL}/metadata`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ ultimaFactura: data.metadata.ultimaFactura })
+            });
 
             toastSuccess('Datos importados con éxito.');
             await cargarDatos();
