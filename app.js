@@ -197,9 +197,34 @@ function popularSelectCategorias(selectId, conOpcionTodos = false) {
     select.innerHTML = options;
 }
 
+function validarProducto() {
+    const nombre = document.getElementById('producto-nombre').value.trim();
+    const precio = safeParseFloat(document.getElementById('producto-precio').value);
+    const stock = safeParseInt(document.getElementById('producto-stock').value);
+    const stockMinimo = safeParseInt(document.getElementById('producto-stock-minimo').value);
+    if (!nombre) {
+        Swal.fire('Error', 'El nombre del producto es obligatorio.', 'error');
+        return false;
+    }
+    if (precio < 0) {
+        Swal.fire('Error', 'El precio no puede ser negativo.', 'error');
+        return false;
+    }
+    if (stock < 0) {
+        Swal.fire('Error', 'El stock no puede ser negativo.', 'error');
+        return false;
+    }
+    if (stockMinimo < 0) {
+        Swal.fire('Error', 'La alerta de stock no puede ser negativa.', 'error');
+        return false;
+    }
+    return true;
+}
+
 // ---- PRODUCTOS ----
 formProducto.addEventListener('submit', async function(event) {
     event.preventDefault();
+    if (!validarProducto()) return;
     mostrarLoader();
     const productoId = document.getElementById('producto-id').value;
     const categoriaIdValue = document.getElementById('producto-categoria').value;
@@ -251,8 +276,24 @@ async function eliminarProducto(id) {
 }
 
 // ---- CLIENTES ----
+function validarCliente() {
+    const nombre = document.getElementById('cliente-nombre').value.trim();
+    const email = document.getElementById('cliente-email').value.trim();
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    if (!nombre) {
+        Swal.fire('Error', 'El nombre del cliente es obligatorio.', 'error');
+        return false;
+    }
+    if (email && !emailRegex.test(email)) {
+        Swal.fire('Error', 'El correo electrónico no es válido.', 'error');
+        return false;
+    }
+    return true;
+}
+
 formCliente.addEventListener('submit', async function(event) {
     event.preventDefault();
+    if (!validarCliente()) return;
     mostrarLoader();
     const clienteId = document.getElementById('cliente-id').value;
     const datosCliente = {
