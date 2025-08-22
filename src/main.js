@@ -1,7 +1,11 @@
 // app.js - Versión optimizada e integrada
 
+import { getJSON, postJSON, patchJSON, deleteJSON } from './api.js';
+import { guardarProducto, eliminarProducto as apiEliminarProducto, actualizarStock, obtenerProductos } from './productos.js';
+import { guardarCliente, eliminarCliente as apiEliminarCliente, obtenerClientes } from './clientes.js';
+import { registrarVenta, eliminarVenta as apiEliminarVenta, obtenerVentas } from './ventas.js';
+
 // ---- CONFIG ----
-const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
 
 // ---- ESTADO GLOBAL ----
 let productos = [];
@@ -95,13 +99,13 @@ async function cargarDatos() {
     mostrarLoader();
     try {
         const [resProductos, resClientes, resVentas, resMetadata, resCategorias] = await Promise.all([
-            fetch(`${API_URL}/productos`), fetch(`${API_URL}/clientes`), fetch(`${API_URL}/ventas`), fetch(`${API_URL}/metadata`), fetch(`${API_URL}/categorias`)
+            obtenerProductos(), obtenerClientes(), obtenerVentas(), getJSON('/metadata'), getJSON('/categorias')
         ]);
-        productos = await resProductos.json();
-        clientes = await resClientes.json();
-        ventas = await resVentas.json();
-        metadata = await resMetadata.json();
-        categorias = await resCategorias.json();
+        productos = resProductos;
+        clientes = resClientes;
+        ventas = resVentas;
+        metadata = resMetadata;
+        categorias = resCategorias;
         
         popularSelectCategorias('filtro-categoria', true);
         actualizarVistas();
@@ -141,9 +145,9 @@ formCategoria.addEventListener('submit', async function(e) {
     if (!nombre) return;
     mostrarLoader();
     try {
-        const url = id ? `${API_URL}/categorias/${id}` : `${API_URL}/categorias`;
-        const method = id ? 'PATCH' : 'POST';
-        const response = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ nombre }) });
+        const response = id
+            ? await patchJSON(`/categorias/${id}`, { nombre })
+            : await postJSON('/categorias', { nombre });
         if (response.ok) {
             toastSuccess(`Categoría ${id ? 'actualizada' : 'creada'}`);
             cancelarEdicionCategoria();
@@ -175,7 +179,7 @@ async function eliminarCategoria(id) {
     if (!await askConfirm('¿Eliminar categoría?', 'Esta acción es permanente.')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/categorias/${id}`, { method: 'DELETE' });
+        const response = await deleteJSON(`/categorias/${id}`);
         if (response.ok) {
             toastSuccess('Categoría eliminada');
             await cargarDatos();
@@ -216,14 +220,8 @@ formProducto.addEventListener('submit', async function(event) {
     };
     
     try {
-        let response;
-        if (productoId) {
-            response = await fetch(`${API_URL}/productos/${productoId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosProducto) });
-            if (response.ok) toastSuccess("Producto actualizado");
-        } else {
-            response = await fetch(`${API_URL}/productos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosProducto) });
-            if (response.ok) toastSuccess("Producto agregado");
-        }
+        const response = await guardarProducto(productoId, datosProducto);
+        if (response.ok) toastSuccess(productoId ? "Producto actualizado" : "Producto agregado");
         if (!response.ok) throw new Error('Error guardando producto');
         cerrarModalProducto();
         await cargarDatos();
@@ -239,8 +237,8 @@ async function eliminarProducto(id) {
     if (!await askConfirm('Eliminar producto', '¿Seguro que quieres eliminar este producto?')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/productos/${id}`, { method: 'DELETE' });
-        if (response.ok) { toastSuccess('Producto eliminado.'); await cargarDatos(); } 
+        const response = await apiEliminarProducto(id);
+        if (response.ok) { toastSuccess('Producto eliminado.'); await cargarDatos(); }
         else { toastError('Error al eliminar.'); }
     } catch (err) {
         console.error(err);
@@ -262,14 +260,8 @@ formCliente.addEventListener('submit', async function(event) {
         direccion: document.getElementById('cliente-direccion') ? document.getElementById('cliente-direccion').value.trim() : ''
     };
     try {
-        let response;
-        if (clienteId) {
-            response = await fetch(`${API_URL}/clientes/${clienteId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosCliente) });
-            if (response.ok) toastSuccess("Cliente actualizado");
-        } else {
-            response = await fetch(`${API_URL}/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(datosCliente) });
-            if (response.ok) toastSuccess("Cliente agregado");
-        }
+        const response = await guardarCliente(clienteId, datosCliente);
+        if (response.ok) toastSuccess(clienteId ? "Cliente actualizado" : "Cliente agregado");
         if (!response.ok) throw new Error('Error guardando cliente');
         cerrarModalCliente();
         await cargarDatos();
@@ -285,8 +277,8 @@ async function eliminarCliente(id) {
     if (!await askConfirm('Eliminar cliente', '¿Seguro que quieres eliminar este cliente?')) return;
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/clientes/${id}`, { method: 'DELETE' });
-        if (response.ok) { toastSuccess('Cliente eliminado.'); await cargarDatos(); } 
+        const response = await apiEliminarCliente(id);
+        if (response.ok) { toastSuccess('Cliente eliminado.'); await cargarDatos(); }
         else { toastError('Error al eliminar.'); }
     } catch (err) {
         console.error(err);
@@ -319,7 +311,7 @@ document.getElementById('form-venta').addEventListener('submit', async function(
     try {
         const promesasStock = ventaActual.map(item => {
             const nuevoStock = item.stock - item.cantidad;
-            return fetch(`${API_URL}/productos/${item.id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: nuevoStock }) });
+            return actualizarStock(item.id, nuevoStock);
         });
         await Promise.all(promesasStock);
         
@@ -333,8 +325,7 @@ document.getElementById('form-venta').addEventListener('submit', async function(
             fecha: new Date().toISOString()
         };
         
-        await fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(nuevaVenta) });
-        await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ultimaFactura: nuevoNumeroFactura }) });
+        await registrarVenta(nuevaVenta, nuevoNumeroFactura);
         
         Swal.fire({ icon: 'success', title: `Venta registrada`, text: `Factura Nº ${nuevaVenta.id}` });
         ventaActual = [];
@@ -357,7 +348,7 @@ async function eliminarVenta(ventaId) {
 
     mostrarLoader();
     try {
-        const response = await fetch(`${API_URL}/ventas/${ventaId}`, { method: 'DELETE' });
+        const response = await apiEliminarVenta(ventaId);
         if (response.ok) {
             toastSuccess('Registro de venta eliminado.');
             await cargarDatos();
@@ -455,19 +446,19 @@ async function importarBackup(event) {
             
             mostrarLoader();
             await Promise.all([
-                ...productos.map(p => fetch(`${API_URL}/productos/${p.id}`, { method: 'DELETE' })),
-                ...clientes.map(c => fetch(`${API_URL}/clientes/${c.id}`, { method: 'DELETE' })),
-                ...ventas.map(v => fetch(`${API_URL}/ventas/${v.id}`, { method: 'DELETE' })),
-                ...categorias.map(cat => fetch(`${API_URL}/categorias/${cat.id}`, { method: 'DELETE' }))
+                ...productos.map(p => deleteJSON(`/productos/${p.id}`)),
+                ...clientes.map(c => deleteJSON(`/clientes/${c.id}`)),
+                ...ventas.map(v => deleteJSON(`/ventas/${v.id}`)),
+                ...categorias.map(cat => deleteJSON(`/categorias/${cat.id}`))
             ]);
 
             await Promise.all([
-                ...data.productos.map(p => fetch(`${API_URL}/productos`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(p) })),
-                ...data.clientes.map(c => fetch(`${API_URL}/clientes`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(c) })),
-                ...data.ventas.map(v => fetch(`${API_URL}/ventas`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(v) })),
-                ...data.categorias.map(cat => fetch(`${API_URL}/categorias`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(cat) }))
+                ...data.productos.map(p => postJSON('/productos', p)),
+                ...data.clientes.map(c => postJSON('/clientes', c)),
+                ...data.ventas.map(v => postJSON('/ventas', v)),
+                ...data.categorias.map(cat => postJSON('/categorias', cat))
             ]);
-            await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(data.metadata) });
+            await patchJSON('/metadata', data.metadata);
 
             toastSuccess('Datos importados con éxito.');
             await cargarDatos();
@@ -496,12 +487,12 @@ async function reiniciarAplicacion() {
     mostrarLoader();
     try {
         await Promise.all([
-            ...productos.map(p => fetch(`${API_URL}/productos/${p.id}`, { method: 'DELETE' })),
-            ...clientes.map(c => fetch(`${API_URL}/clientes/${c.id}`, { method: 'DELETE' })),
-            ...ventas.map(v => fetch(`${API_URL}/ventas/${v.id}`, { method: 'DELETE' })),
-            ...categorias.map(c => fetch(`${API_URL}/categorias/${c.id}`, { method: 'DELETE' }))
+            ...productos.map(p => deleteJSON(`/productos/${p.id}`)),
+            ...clientes.map(c => deleteJSON(`/clientes/${c.id}`)),
+            ...ventas.map(v => deleteJSON(`/ventas/${v.id}`)),
+            ...categorias.map(c => deleteJSON(`/categorias/${c.id}`))
         ]);
-        await fetch(`${API_URL}/metadata`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ultimaFactura: 0 }) });
+        await patchJSON('/metadata', { ultimaFactura: 0 });
         Swal.fire('¡Hecho!', 'Aplicación reiniciada con éxito.', 'success');
         await cargarDatos();
     } catch (error) {
@@ -775,7 +766,7 @@ window.ajustarStock = (productoId, operacion) => {
         }
         nuevoStock -= cantidad;
     }
-    fetch(`${API_URL}/productos/${productoId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ stock: nuevoStock }) })
+    actualizarStock(productoId, nuevoStock)
     .then(res => {
         if (res.ok) { input.value = ''; toastSuccess("Stock actualizado"); cargarDatos(); }
         else { toastError("Error al actualizar stock"); }
