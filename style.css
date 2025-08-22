@@ -11,11 +11,15 @@
 }
 
 /* Estilos Generales */
+html {
+    scroll-behavior: smooth;
+}
 body {
     font-family: 'Montserrat', sans-serif;
     margin: 0;
     background-color: var(--color-fondo);
     color: var(--color-texto-general);
+    line-height: 1.6;
 }
 .app-container {
     display: flex;
@@ -23,13 +27,14 @@ body {
 /* Barra de Navegación */
 .sidebar {
     width: 240px;
-    background-color: var(--color-sidebar);
+    background: linear-gradient(180deg, var(--color-sidebar) 0%, #2f312f 100%);
     color: var(--color-texto-sidebar);
     height: 100vh;
     padding: 20px;
     box-sizing: border-box;
     flex-shrink: 0;
     position: relative;
+    box-shadow: 4px 0 8px var(--color-sombra);
 }
 .logo-container {
     text-align: center;
@@ -50,10 +55,12 @@ body {
     padding: 15px;
     border-radius: 8px;
     margin-bottom: 10px;
-    transition: background-color 0.3s;
+    font-weight: 500;
+    transition: background-color 0.3s, transform 0.2s;
 }
 .sidebar ul li a:hover {
-    background-color: rgba(255,255,255,0.1);
+    background-color: rgba(255,255,255,0.15);
+    transform: translateX(5px);
 }
 /* Contenido Principal */
 .main-content {
@@ -62,6 +69,8 @@ body {
     overflow-y: auto;
     height: 100vh;
     box-sizing: border-box;
+    background-color: var(--color-blanco);
+    box-shadow: -4px 0 8px var(--color-sombra);
 }
 .btn-menu {
     display: none;
@@ -134,7 +143,8 @@ h2, h3 {
     border-radius: 5px;
     cursor: pointer;
     font-family: 'Montserrat', sans-serif;
-    transition: filter 0.2s;
+    box-shadow: 0 2px 4px var(--color-sombra);
+    transition: filter 0.2s, transform 0.1s;
     font-weight: 700;
 }
 .btn-primario {
@@ -153,6 +163,7 @@ h2, h3 {
 }
 .btn-primario:hover, .btn-secundario:hover, .btn-peligro:hover {
     filter: brightness(110%);
+    transform: translateY(-2px);
 }
 /* CORRECCIÓN: Se hace la regla de inputs más específica para no afectar librerías externas */
 .seccion input[type="text"], .seccion input[type="number"], .seccion input[type="email"], .seccion input[type="tel"], .seccion textarea, .seccion select,
@@ -379,8 +390,16 @@ body.menu-abierto { overflow: hidden; }
     cursor: pointer;
     box-shadow: 0 4px 8px var(--color-sombra);
     z-index: 1003;
+
+    transition: filter 0.2s;
+
 }
 
 .btn-scroll-top.mostrar {
     display: flex;
+}
+
+
+.btn-scroll-top:hover {
+    filter: brightness(110%);
 }
