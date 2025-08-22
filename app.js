@@ -384,8 +384,12 @@ function generarFacturaPDF(ventaId) {
     document.getElementById('factura-cliente-telefono').innerText = cliente.telefono || '';
     const tablaBody = document.getElementById('factura-tabla-body');
     tablaBody.innerHTML = '';
-    venta.productosVendidos.forEach(item => { tablaBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(item.precio * item.cantidad)}</td></tr>`; });
-    document.getElementById('factura-total-valor').innerText = formatearCOP(venta.total);
+    venta.productosVendidos.forEach(item => {
+        tablaBody.innerHTML += `<tr><td>${item.nombre}</td><td>${item.cantidad}</td><td>${formatearCOP(item.precio)}</td><td>${formatearCOP(item.precio * item.cantidad)}</td></tr>`;
+    });
+    const iva = venta.total * 0.21;
+    document.getElementById('factura-iva-valor').innerText = formatearCOP(iva);
+    document.getElementById('factura-total-valor').innerText = formatearCOP(venta.total + iva);
     const elemento = document.getElementById('plantilla-factura');
     const opt = { margin: 0, filename: `Factura-${venta.id}.pdf`, image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 3, useCORS: true }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' } };
     html2pdf().from(elemento).set(opt).save();
