@@ -670,6 +670,7 @@ function actualizarVistas() {
 }
 
 // ---- INICIALIZACIÓN ----
+if (typeof module === 'undefined') {
 document.addEventListener('DOMContentLoaded', () => {
     aplicarConfiguracionGuardada();
     configurarEventListenersDeColores();
@@ -726,6 +727,7 @@ document.addEventListener('DOMContentLoaded', () => {
     mostrarSeccion('dashboard');
     cargarDatos();
 });
+}
 
 function mostrarSeccion(idSeccion) {
     document.querySelectorAll('.seccion').forEach(s => s.classList.remove('activa'));
@@ -875,3 +877,7 @@ window.eliminarCategoria = eliminarCategoria;
     if (s) s.addEventListener('change', () => window.renderizarInventario());
   });
 })();
+
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { formatearCOP, safeParseInt };
+}
