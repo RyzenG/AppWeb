@@ -5,10 +5,20 @@ const API_URL = window.location.hostname === 'localhost' ? 'http://localhost:300
 const IMAGE_BASE_PATH = './';
 function buildImageSrc(imagenUrl) {
     if (!imagenUrl) return '';
-    if (imagenUrl.startsWith('http://') || imagenUrl.startsWith('https://') || imagenUrl.startsWith('./') || imagenUrl.startsWith('/')) {
-        return imagenUrl;
+
+    const trimmed = imagenUrl.trim();
+    const lower = trimmed.toLowerCase();
+    if (lower.startsWith('javascript:') || lower.startsWith('data:')) return '';
+
+    const url = (lower.startsWith('http://') || lower.startsWith('https://') || trimmed.startsWith('./') || trimmed.startsWith('/'))
+        ? trimmed
+        : `${IMAGE_BASE_PATH}${trimmed}`;
+    try {
+        const parsed = new URL(url, window.location.origin);
+        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
+    } catch {
+        return '';
     }
-    return `${IMAGE_BASE_PATH}${imagenUrl}`;
 }
 
 // ---- ESTADO GLOBAL ----
@@ -57,14 +67,6 @@ function formatearCOP(valor) { return new Intl.NumberFormat('es-CO', { style: 'c
 function formatearNumeroFactura(numero) { return numero.toString().padStart(4, '0'); }
 function safeParseFloat(v) { const n = parseFloat(v); return isNaN(n) ? 0 : n; }
 function safeParseInt(v) { const n = parseInt(v); return isNaN(n) ? 0 : n; }
-function sanitizeURL(url) {
-    try {
-        const parsed = new URL(url, window.location.origin);
-        return ['http:', 'https:'].includes(parsed.protocol) ? parsed.href : '';
-    } catch {
-        return '';
-    }
-}
 
 // ---- MODALES ----
 function abrirModalProducto() { formProducto.reset(); document.getElementById('producto-id').value = ''; modalProductoTitulo.innerText = "Agregar Nuevo Producto"; popularSelectCategorias('producto-categoria'); modalProducto.style.display = 'block'; }
@@ -656,12 +658,94 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
         const categoria = categorias.find(c => c.id === p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
+
+        const imgSrc = buildImageSrc(p.imagenUrl);
+        if (imgSrc) {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.alt = p.nombre || '';
+            img.addEventListener('click', () => abrirModalImagen(img.src));
+            tarjeta.appendChild(img);
+        }
+
+        const contenido = document.createElement('div');
+        contenido.className = 'tarjeta-contenido';
+        const h4 = document.createElement('h4');
+        h4.textContent = p.nombre;
+        const pCat = document.createElement('p');
+        pCat.textContent = `Categoría: ${categoria ? categoria.nombre : 'N/A'}`;
+        const pDesc = document.createElement('p');
+        pDesc.textContent = p.descripcion || '';
+        const pPrecio = document.createElement('p');
+        pPrecio.textContent = formatearCOP(p.precio);
+        const acciones = document.createElement('div');
+        acciones.className = 'tarjeta-acciones';
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
+        acciones.append(btnEditar, btnEliminar);
+        contenido.append(h4, pCat, pDesc, pPrecio, acciones);
+        tarjeta.appendChild(contenido);
         contenedor.appendChild(tarjeta);
     });
 }
 function renderizarProductosEnLista(productosParaMostrar) {
     const tbody = document.getElementById('tabla-productos-body');
+    tbody.textContent = '';
+    productosParaMostrar.forEach(p => {
+        const categoria = categorias.find(c => c.id === p.categoriaId);
+        const tr = document.createElement('tr');
 
+        const tdProducto = document.createElement('td');
+        const imgSrc = buildImageSrc(p.imagenUrl);
+        if (imgSrc) {
+            const img = document.createElement('img');
+            img.src = imgSrc;
+            img.alt = p.nombre || '';
+            img.style.width = '40px';
+            img.style.cursor = 'pointer';
+            img.addEventListener('click', () => abrirModalImagen(img.src));
+            tdProducto.appendChild(img);
+        }
+        const spanNombre = document.createElement('span');
+        spanNombre.textContent = p.nombre;
+        if (tdProducto.firstChild) {
+            const wrapper = document.createElement('div');
+            wrapper.style.display = 'flex';
+            wrapper.style.alignItems = 'center';
+            wrapper.style.gap = '5px';
+            wrapper.append(tdProducto.firstChild, spanNombre);
+            tdProducto.appendChild(wrapper);
+        } else {
+            tdProducto.appendChild(spanNombre);
+        }
+
+        const tdCategoria = document.createElement('td');
+        tdCategoria.textContent = categoria ? categoria.nombre : 'N/A';
+        const tdDescripcion = document.createElement('td');
+        tdDescripcion.textContent = p.descripcion || '';
+        const tdPrecio = document.createElement('td');
+        tdPrecio.textContent = formatearCOP(p.precio);
+        const tdStock = document.createElement('td');
+        tdStock.textContent = p.stock;
+        const tdAcciones = document.createElement('td');
+        const btnEditar = document.createElement('button');
+        btnEditar.className = 'btn-secundario';
+        btnEditar.textContent = 'Editar';
+        btnEditar.addEventListener('click', () => abrirModalParaEditar(p.id));
+        const btnEliminar = document.createElement('button');
+        btnEliminar.className = 'btn-peligro';
+        btnEliminar.textContent = 'Eliminar';
+        btnEliminar.addEventListener('click', () => eliminarProducto(p.id));
+        tdAcciones.append(btnEditar, btnEliminar);
+
+        tr.append(tdProducto, tdCategoria, tdDescripcion, tdPrecio, tdStock, tdAcciones);
+        tbody.appendChild(tr);
     });
 }
 function actualizarVistaClientes(nuevaPagina = paginacion.clientes.paginaActual) {
