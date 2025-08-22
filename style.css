@@ -361,3 +361,26 @@ body.menu-abierto { overflow: hidden; }
 .factura-footer { margin-top: 40px; text-align: center; border-top: 1px solid #ccc; padding-top: 15px; }
 .factura-gracias-box p { margin: 0; font-style: italic; }
 .inventario-filtros{display:flex;gap:10px;align-items:center;margin:10px 0}
+
+/* Botón para volver arriba */
+.btn-scroll-top {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    display: none;
+    justify-content: center;
+    align-items: center;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    background-color: var(--color-primario);
+    color: var(--color-blanco);
+    cursor: pointer;
+    box-shadow: 0 4px 8px var(--color-sombra);
+    z-index: 1003;
+}
+
+.btn-scroll-top.mostrar {
+    display: flex;
+}
