@@ -405,6 +405,18 @@
 
     <button id="btn-scroll-top" class="btn-scroll-top" aria-label="Volver arriba">⬆️</button>
 
+    <script src="app.js"></script>
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/service-worker.js').catch(err => {
+                    console.error('Error al registrar el Service Worker:', err);
+                });
+            });
+        }
+    </script>
+  
     <script type="module" src="src/main.js"></script>
+  
 </body>
 </html>
