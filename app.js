@@ -159,7 +159,7 @@ function editarCategoria(id, nombre) {
 }
 
 async function eliminarCategoria(id) {
-    const productosEnCategoria = productos.filter(p => p.categoriaId == id).length;
+    const productosEnCategoria = productos.filter(p => p.categoriaId === id).length;
     if (productosEnCategoria > 0) {
         return Swal.fire('Acción denegada', `No se puede eliminar la categoría porque hay ${productosEnCategoria} producto(s) asociado(s) a ella.`, 'error');
     }
@@ -202,8 +202,8 @@ formProducto.addEventListener('submit', async function(event) {
         stock: safeParseInt(document.getElementById('producto-stock').value),
         stockMinimo: safeParseInt(document.getElementById('producto-stock-minimo').value),
         imagenUrl: document.getElementById('producto-imagen-url').value.trim(),
-        // CORRECCIÓN: Asegurar que el ID de la categoría se guarde como número o null.
-        categoriaId: categoriaIdValue ? safeParseInt(categoriaIdValue) : null
+        // CORRECCIÓN: Asegurar que el ID de la categoría se guarde como string o null.
+        categoriaId: categoriaIdValue ? String(categoriaIdValue) : null
     };
     
     try {
@@ -557,7 +557,7 @@ function actualizarVistaProductos(nuevaPagina = paginacion.productos.paginaActua
     
     const productosFiltrados = productos.filter(p => {
         const coincideBusqueda = (p.nombre || '').toLowerCase().includes(terminoBusqueda);
-        const coincideCategoria = categoriaSeleccionada === 'todos' || p.categoriaId == categoriaSeleccionada;
+        const coincideCategoria = categoriaSeleccionada === 'todos' || p.categoriaId === categoriaSeleccionada;
         return coincideBusqueda && coincideCategoria;
     });
 
@@ -570,7 +570,7 @@ function renderizarProductosEnTarjetas(productosParaMostrar) {
     const contenedor = document.getElementById('lista-productos-tarjetas');
     contenedor.innerHTML = '';
     productosParaMostrar.forEach(p => {
-        const categoria = categorias.find(c => c.id == p.categoriaId);
+        const categoria = categorias.find(c => c.id === p.categoriaId);
         const tarjeta = document.createElement('div');
         tarjeta.className = 'tarjeta-producto';
         const alerta = p.stock <= p.stockMinimo ? `<p style="color: var(--color-peligro); font-weight: bold;">¡Stock bajo!</p>` : '';
@@ -584,7 +584,7 @@ function renderizarProductosEnLista(productosParaMostrar) {
     const tbody = document.getElementById('tabla-productos-body');
     tbody.innerHTML = '';
     productosParaMostrar.forEach(p => { 
-        const categoria = categorias.find(c => c.id == p.categoriaId);
+        const categoria = categorias.find(c => c.id === p.categoriaId);
         const tr = document.createElement('tr'); 
         tr.innerHTML = `<td><strong>${p.nombre}</strong></td><td>${categoria ? categoria.nombre : 'N/A'}</td><td>${p.descripcion}</td><td>${formatearCOP(p.precio)}</td><td>${p.stock}</td><td><div class="tarjeta-acciones" style="border-top: none; padding-top: 0;"><button class="btn-secundario" onclick="abrirModalParaEditar('${p.id}')">Editar</button><button class="btn-peligro" onclick="eliminarProducto('${p.id}')">Eliminar</button></div></td>`; 
         tbody.appendChild(tr); 
